@@ -4,35 +4,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description" content="Бережный AI‑навигатор «Платформа»: уточнение ситуации, предварительный запрос и персональная практика." />
-  <meta name="theme-color" content="#5a3658" />
+  <meta name="theme-color" content="#f5eee4" />
+  <link rel="icon" href="data:," />
   <title>Платформа — AI‑навигатор</title>
   <style>
     :root{
-      --bg:#f7f5f1; --card:#ffffff; --ink:#2e2630; --muted:#6f6870;
-      --plum:#5a3658; --plum2:#7a4f78; --sage:#dfe8df; --line:#e8e2e7;
-      --soft:#f0ebe9; --accent:#c97e6e; --ok:#e9f2eb;
+      --bg:#f5eee4; --card:#fffaf3; --ink:#3e2638; --muted:#766a67;
+      --plum:#45283e; --plum2:#684259; --sage:#e6e5d7; --line:#dacfc4;
+      --soft:#eee5dc; --accent:#c8623d; --accent2:#d77b55; --ok:#e7eee1;
     }
     *{box-sizing:border-box}
     body{margin:0;min-width:320px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:
-      radial-gradient(circle at 80% 0%,#e9efe9 0,transparent 30%),
-      linear-gradient(180deg,#fbfaf8,#f4f0ee);color:var(--ink)}
-    .wrap{max-width:980px;margin:auto;padding:28px 18px 60px}
-    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-    .brand{font-weight:700;letter-spacing:.02em}.tag{font-size:13px;color:var(--muted)}
-    .shell{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:stretch}
-    .hero,.panel{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:26px;
-      box-shadow:0 18px 50px rgba(71,48,69,.08)}
-    .hero{padding:44px}.panel{padding:26px}
-    h1{font-family:Georgia,serif;font-size:54px;line-height:1.02;margin:0 0 18px;color:var(--plum)}
-    h2{font-family:Georgia,serif;font-size:33px;margin:0 0 15px;color:var(--plum)}
+      radial-gradient(circle at 18% 10%,rgba(255,255,255,.7),transparent 28%),
+      linear-gradient(135deg,#f8f1e7,#f2e9dd);color:var(--ink)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;background:repeating-radial-gradient(circle at 0 0,rgba(69,40,62,.14) 0 1px,transparent 1px 4px)}
+    .wrap{max-width:1500px;margin:auto;padding:28px clamp(22px,4.5vw,72px) 64px}
+    header{min-height:94px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(69,40,62,.16);margin-bottom:0}
+    .brand-block{display:grid;gap:2px}.brand{font-family:Georgia,'Times New Roman',serif;font-size:32px;letter-spacing:.055em;color:var(--plum)}
+    .brand-subtitle{font-size:14px;color:var(--accent)}.tag{font-size:14px;color:var(--muted);letter-spacing:.02em}
+    .shell{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:clamp(30px,4vw,70px);align-items:stretch}
+    .hero{display:flex;flex-direction:column;justify-content:center;padding:72px 0 64px 14px;min-height:650px}
+    .hero-visual{min-height:650px;overflow:hidden;border-radius:48% 0 0 44% / 28% 0 0 36%;margin-right:calc(clamp(22px,4.5vw,72px) * -1)}
+    .hero-visual img{width:100%;height:100%;display:block;object-fit:cover;object-position:66% center}.hero-visual.image-fallback{background:radial-gradient(circle at 68% 28%,rgba(255,255,255,.78),transparent 24%),linear-gradient(145deg,#e7dfd2,#cfa98e 55%,#69465d)}
+    .panel{background:rgba(255,250,243,.9);border:1px solid var(--line);border-radius:26px;box-shadow:0 18px 50px rgba(71,48,69,.08);padding:28px}
+    .wrap>.panel{max-width:940px;margin:34px auto 0}
+    .intro-panel{grid-column:1/-1;padding:34px 12px 0;border-top:1px solid rgba(69,40,62,.16)}
+    .intro-panel .why{grid-template-columns:repeat(4,1fr);gap:12px}.intro-panel .notice{margin-top:18px}
+    h1{max-width:780px;font-family:Georgia,'Times New Roman',serif;font-size:clamp(58px,5.3vw,84px);font-weight:400;letter-spacing:-.035em;line-height:.98;margin:0 0 28px;color:var(--plum)}
+    h2{font-family:Georgia,'Times New Roman',serif;font-size:35px;font-weight:400;margin:0 0 15px;color:var(--plum)}
     h3{font-size:18px;margin:0 0 10px}
-    p{line-height:1.6}.lead{font-size:18px;color:var(--muted)}
-    .btn{min-height:48px;border:0;border-radius:16px;padding:15px 20px;background:var(--plum);color:white;font-size:16px;
+    p{line-height:1.6}.lead{max-width:620px;font-size:20px;line-height:1.5;color:var(--ink);margin:0 0 32px}
+    .btn{min-height:52px;border:0;border-radius:14px;padding:16px 24px;background:var(--plum);color:white;font-size:16px;
       font-weight:650;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
-    .btn:hover{transform:translateY(-1px);background:var(--plum2)}
+    .hero .btn{align-self:flex-start;min-width:300px;min-height:72px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:22px;box-shadow:0 12px 26px rgba(164,78,46,.16)}
+    .btn:hover{transform:translateY(-2px);background:var(--plum2)}.hero .btn:hover{background:linear-gradient(135deg,#b65332,#cd704b)}
     .btn:focus-visible,.option:focus-visible,.score button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid rgba(90,54,88,.3);outline-offset:2px}
     .btn.secondary{background:white;color:var(--plum);border:1px solid var(--line)}
-    .btn.full{width:100%}.small{font-size:13px;color:var(--muted)}
+    .btn.full{width:100%}.btn:disabled{opacity:.58;cursor:not-allowed;transform:none}.small{font-size:14px;color:#8a7b75;margin-top:28px}.small:before{content:"•";color:var(--accent);font-size:20px;margin-right:12px}
     .step{display:none}.step.active{display:block}
     .progress{height:8px;background:#eee8ec;border-radius:999px;overflow:hidden;margin-bottom:18px}
     .bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--plum));width:0;transition:.3s}
@@ -54,20 +62,30 @@
     .score button.on{background:var(--plum);color:white}
     .notice{font-size:13px;color:var(--muted);padding:12px;border:1px dashed #d7cfd5;border-radius:12px}
     .hidden{display:none!important}.success{padding:16px;background:var(--ok);border-radius:14px;margin-top:12px}
+    @media(max-width:980px){
+      .shell{grid-template-columns:1fr .85fr;gap:28px}.hero{padding-left:0}.intro-panel .why{grid-template-columns:1fr 1fr}
+      h1{font-size:clamp(50px,7vw,68px)}
+    }
     @media(max-width:760px){
-      .wrap{padding:20px 14px 44px}.shell{grid-template-columns:1fr;gap:18px}.hero{padding:30px 24px}.panel{padding:22px}
-      h1{font-size:clamp(38px,11vw,46px)}h2{font-size:30px}
+      .wrap{padding:20px 14px 44px}header{min-height:76px}.brand{font-size:25px}.brand-subtitle{font-size:12px}
+      .shell{grid-template-columns:1fr;gap:0}.hero{min-height:auto;padding:48px 8px 40px}.hero-visual{min-height:440px;margin:0 -14px;border-radius:34px}
+      .intro-panel{padding:28px 6px 0;margin-top:28px}.panel{padding:22px}.wrap>.panel{margin-top:24px}
+      h1{font-size:clamp(44px,12vw,58px)}h2{font-size:30px}
     }
     @media(max-width:480px){
-      header{align-items:flex-start;gap:14px}.tag{max-width:145px;text-align:right}
-      .hero,.panel{border-radius:20px}.hero{padding:26px 20px}.panel{padding:20px 18px}
-      .lead{font-size:17px}.nav{flex-direction:column-reverse}.nav .btn{width:100%}
+      header{align-items:center;gap:12px}.tag{max-width:112px;text-align:right;font-size:12px}.brand{font-size:22px}
+      .hero{padding:40px 4px 32px}.hero-visual{min-height:330px}.panel{border-radius:20px;padding:20px 18px}
+      .intro-panel .why{grid-template-columns:1fr}.lead{font-size:17px}.hero .btn{width:100%;min-width:0;min-height:62px;font-size:19px}
+      .nav{flex-direction:column-reverse}.nav .btn{width:100%}
     }
   </style>
 </head>
 <body>
 <div class="wrap">
-<header><div class="brand">ПЛАТФОРМА</div><div class="tag">бережный AI‑навигатор</div></header>
+<header>
+  <div class="brand-block"><div class="brand">ПЛАТФОРМА</div><div class="brand-subtitle">AI‑навигатор для женщин 35+</div></div>
+  <div class="tag">бережный путь к ясности</div>
+</header>
 
 <div id="intro" class="shell">
   <section class="hero">
@@ -76,7 +94,8 @@
     <button class="btn" onclick="start()">Начать диалог</button>
     <p class="small">7–10 минут · конфиденциально · без диагнозов</p>
   </section>
-  <aside class="panel">
+  <div class="hero-visual" aria-hidden="true"><img src="images/hero-platforma.png" alt="" onerror="this.hidden=true;this.parentElement.classList.add('image-fallback')" /></div>
+  <aside class="intro-panel">
     <h3>Что будет в конце</h3>
     <div class="why">
       <div>Короткое отражение вашей ситуации</div>
@@ -106,6 +125,18 @@
   <div id="practice" class="result-card practice"></div>
   <p class="notice">Это предварительное отражение, а не диагноз. Его задача — помочь яснее начать разговор с собой или со специалистом.</p>
   <button class="btn full" onclick="showFeedback()">Продолжить и поделиться впечатлением</button>
+</section>
+
+
+<section id="safety" class="panel hidden">
+  <h2>Сейчас важнее получить живую помощь</h2>
+  <p>По вашему ответу похоже, что вы не чувствуете себя в безопасности. Навигатор не будет продолжать обычную интерпретацию ситуации.</p>
+  <div class="result-card request">
+    <h3>Что можно сделать сейчас</h3>
+    <p>Свяжитесь с человеком, которому доверяете, или с местной экстренной службой. Если есть непосредственная угроза жизни или здоровью, обратитесь за срочной помощью по номеру экстренных служб вашего региона.</p>
+  </div>
+  <p class="notice">Этот экран не является медицинской консультацией. Его задача — не оставлять вас один на один с небезопасной ситуацией.</p>
+  <button class="btn secondary" onclick="location.reload()">Начать заново</button>
 </section>
 
 <section id="feedback" class="panel hidden">
@@ -219,13 +250,31 @@ function render(){
  const progress=Math.round(idx/qs.length*100);
  document.getElementById('bar').style.width=progress+'%';
  document.querySelector('.progress').setAttribute('aria-valuenow',String(progress));
- let html=`<h2>${q.q}</h2>`;
+ const questionEl=document.getElementById('question');
+ questionEl.replaceChildren();
+ const heading=document.createElement('h2');
+ heading.textContent=q.q;
+ questionEl.appendChild(heading);
  if(q.type==='text'){
-   html+=`<textarea id="txt">${answers[q.id]||''}</textarea>`;
+   const textarea=document.createElement('textarea');
+   textarea.id='txt';
+   textarea.value=answers[q.id]||'';
+   questionEl.appendChild(textarea);
  } else {
-   html+=`<div class="options">`+q.o.map(x=>`<button class="option ${(Array.isArray(answers[q.id])?answers[q.id].includes(x):answers[q.id]===x)?'selected':''}" onclick="pick('${q.id}',${JSON.stringify(x)},'${q.type}',this)">${x}</button>`).join('')+`</div>`;
+   const options=document.createElement('div');
+   options.className='options';
+   q.o.forEach(option=>{
+     const button=document.createElement('button');
+     button.type='button';
+     button.className='option';
+     const selected=Array.isArray(answers[q.id])?answers[q.id].includes(option):answers[q.id]===option;
+     if(selected) button.classList.add('selected');
+     button.textContent=option;
+     button.addEventListener('click',()=>pick(q.id,option,q.type,button));
+     options.appendChild(button);
+   });
+   questionEl.appendChild(options);
  }
- document.getElementById('question').innerHTML=html;
  document.getElementById('back').style.visibility=idx===0?'hidden':'visible';
 }
 function pick(id,val,type,el){
@@ -278,19 +327,43 @@ function infer(){
  }
  return {route,title,evidence,reflection,request,practice};
 }
+function setResultBlock(id,title,body){
+ const el=document.getElementById(id);
+ el.replaceChildren();
+ const h=document.createElement('h3'); h.textContent=title;
+ const p=document.createElement('p'); p.textContent=body;
+ el.append(h,p);
+}
 function makeResult(){
- resultData=infer();
  document.getElementById('app').classList.add('hidden');
+ if(answers.safetyLevel==='Нет, мне нужна срочная помощь'){
+   document.getElementById('safety').classList.remove('hidden');
+   return;
+ }
+ resultData=infer();
  document.getElementById('result').classList.remove('hidden');
- document.getElementById('reflection').innerHTML=`<h3>${resultData.title}</h3><p>${resultData.reflection}</p>`;
- document.getElementById('evidence').innerHTML=`<h3>Почему навигатор пришёл к этому выводу</h3>`+resultData.evidence.map(x=>`<div>${x}</div>`).join('');
- document.getElementById('request').innerHTML=`<h3>Как можно сформулировать запрос</h3><p>${resultData.request}</p>`;
- document.getElementById('practice').innerHTML=`<h3>Первый шаг</h3><p>${resultData.practice}</p>`;
+ setResultBlock('reflection',resultData.title,resultData.reflection);
+ const evidence=document.getElementById('evidence');
+ evidence.replaceChildren();
+ const heading=document.createElement('h3'); heading.textContent='Почему навигатор пришёл к этому выводу';
+ evidence.appendChild(heading);
+ resultData.evidence.forEach(item=>{const div=document.createElement('div');div.textContent=item;evidence.appendChild(div)});
+ setResultBlock('request','Как можно сформулировать запрос',resultData.request);
+ setResultBlock('practice','Первый шаг',resultData.practice);
 }
 let clarity='',trust='',recognition='',readiness='';
 function scoreBox(id,setter){
  const el=document.getElementById(id);
- el.innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="Оценка ${n} из 5" aria-pressed="false" onclick="${setter}(${n})">${n}</button>`).join('');
+ el.replaceChildren();
+ [1,2,3,4,5].forEach(n=>{
+   const button=document.createElement('button');
+   button.type='button';
+   button.setAttribute('aria-label',`Оценка ${n} из 5`);
+   button.setAttribute('aria-pressed','false');
+   button.textContent=String(n);
+   button.addEventListener('click',()=>setter(n));
+   el.appendChild(button);
+ });
 }
 function setClarity(n){clarity=n;mark('clarity',n)} function setTrust(n){trust=n;mark('trust',n)}
 function mark(id,n){[...document.getElementById(id).children].forEach((b,i)=>{b.classList.toggle('on',i<n);b.setAttribute('aria-pressed',String(i<n))})}
@@ -302,8 +375,16 @@ function setupChoices(id,cb){
 }
 function showFeedback(){
  document.getElementById('result').classList.add('hidden');document.getElementById('feedback').classList.remove('hidden');
- scoreBox('clarity','setClarity');scoreBox('trust','setTrust');
+ scoreBox('clarity',setClarity);scoreBox('trust',setTrust);
  setupChoices('recognition',v=>recognition=v);setupChoices('readiness',v=>readiness=v);
+}
+function setSendStatus(message){
+ const st=document.getElementById('sendStatus');
+ st.replaceChildren();
+ const notice=document.createElement('div');
+ notice.className='success';
+ notice.textContent=message;
+ st.appendChild(notice);
 }
 async function send(payload){
  await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors'});
@@ -311,14 +392,22 @@ async function send(payload){
 async function submitFeedback(){
  if(!clarity||!trust||!recognition||!readiness){alert('Пожалуйста, заполните оценки и выберите варианты');return}
  if(!document.getElementById('consent').checked){alert('Нужно согласие на обработку ответов');return}
+ const submitButton=document.querySelector('#feedback .btn.full');
+ submitButton.disabled=true;
  const payload={sessionId,status:'завершено',...answers,route:resultData.route,practice:resultData.practice,
   clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:false,
   comment:`Узнала себя: ${recognition} · ${document.getElementById('comment').value.trim()}`,
   name:document.getElementById('name').value.trim(),contact:document.getElementById('contact').value.trim(),
   consent:true,source:'AI-навигатор Платформа v2'};
- const st=document.getElementById('sendStatus');st.innerHTML='<div class="success">Сохраняю ответы…</div>';
- try{await send(payload);document.getElementById('feedback').classList.add('hidden');document.getElementById('finish').classList.remove('hidden')}
- catch(e){st.innerHTML='<div class="success">Не удалось сохранить. Попробуйте ещё раз.</div>'}
+ setSendStatus('Сохраняю ответы…');
+ try{
+   await send(payload);
+   document.getElementById('feedback').classList.add('hidden');
+   document.getElementById('finish').classList.remove('hidden');
+ } catch(e){
+   setSendStatus('Не удалось отправить ответы. Проверьте интернет и попробуйте ещё раз.');
+   submitButton.disabled=false;
+ }
 }
 function trackBooking(){send({sessionId,status:'переход к записи',...answers,route:resultData.route,practice:resultData.practice,
  clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:true,
