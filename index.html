@@ -217,7 +217,17 @@
 
 <script>
 const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
-const sessionId=globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now());
+function createSessionId(){return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now())}
+function getNavigatorSessionId(){
+ const key='platformaSessionId';
+ try{
+  const existing=sessionStorage.getItem(key)||localStorage.getItem(key);
+  const value=existing||createSessionId();
+  sessionStorage.setItem(key,value);
+  return value;
+ } catch(e){return createSessionId()}
+}
+const sessionId=getNavigatorSessionId();
 const answers={}; let idx=0, history=[], resultData={};
 
 const baseQuestions=[
@@ -313,7 +323,14 @@ function pick(id,val,type,el){
    delete answers.customConcern; delete answers.routeGap; delete answers.blockType;
  }
  if(type==='multi'){
-   const arr=answers[id]||[]; answers[id]=arr.includes(val)?arr.filter(x=>x!==val):[...arr,val];
+   const arr=answers[id]||[];
+   if(id==='triedBefore'){
+    if(val==='Пока ничего') answers[id]=arr.includes(val)?[]:[val];
+    else {
+     const withoutNone=arr.filter(x=>x!=='Пока ничего');
+     answers[id]=withoutNone.includes(val)?withoutNone.filter(x=>x!==val):[...withoutNone,val];
+    }
+   } else answers[id]=arr.includes(val)?arr.filter(x=>x!==val):[...arr,val];
  } else answers[id]=val;
  render();
 }
