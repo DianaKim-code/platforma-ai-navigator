@@ -62,6 +62,14 @@
     .score button.on{background:var(--plum);color:white}
     .notice{font-size:13px;color:var(--muted);padding:12px;border:1px dashed #d7cfd5;border-radius:12px}
     .hidden{display:none!important}.success{padding:16px;background:var(--ok);border-radius:14px;margin-top:12px}
+    .specialist-kicker{margin:26px 0 10px;color:var(--accent);font-size:13px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+    .specialist-card{display:grid;grid-template-columns:150px minmax(0,1fr);gap:22px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 32px rgba(71,48,69,.07)}
+    .specialist-photo{width:150px;height:184px;object-fit:cover;object-position:center 18%;border-radius:16px;background:var(--soft)}
+    .specialist-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.specialist-name{margin:0 0 4px;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:var(--plum)}
+    .specialist-role{margin:0;color:var(--muted);line-height:1.45}.match-badge{flex:0 0 auto;padding:8px 10px;border-radius:999px;background:var(--ok);color:#46634d;font-size:12px;font-weight:700}
+    .match-reason{margin:15px 0;padding:12px 14px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:#f8f1e9;line-height:1.5}
+    .specialist-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 15px}.specialist-tags span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px}
+    .specialist-meta{display:flex;flex-wrap:wrap;gap:9px 18px;margin:0 0 16px;color:var(--muted);font-size:14px}.specialist-actions{display:flex;gap:10px;align-items:center}.specialist-actions .btn{min-height:48px}.profile-link{color:var(--plum);font-weight:650;text-underline-offset:3px}
     @media(max-width:980px){
       .shell{grid-template-columns:1fr .85fr;gap:28px}.hero{padding-left:0}.intro-panel .why{grid-template-columns:1fr 1fr}
       h1{font-size:clamp(50px,7vw,68px)}
@@ -77,6 +85,7 @@
       .hero{padding:40px 4px 32px}.hero-visual{min-height:330px}.panel{border-radius:20px;padding:20px 18px}
       .intro-panel .why{grid-template-columns:1fr}.lead{font-size:17px}.hero .btn{width:100%;min-width:0;min-height:62px;font-size:19px}
       .nav{flex-direction:column-reverse}.nav .btn{width:100%}
+      .specialist-card{grid-template-columns:1fr;padding:16px}.specialist-photo{width:100%;height:260px}.specialist-head{display:block}.match-badge{display:inline-block;margin-top:10px}.specialist-actions{align-items:stretch;flex-direction:column}.specialist-actions .btn,.profile-link{text-align:center;width:100%}
     }
   </style>
 </head>
@@ -177,10 +186,31 @@
 
 <section id="finish" class="panel hidden">
   <h2>Спасибо</h2>
-  <p>Ваши ответы сохранены. Можно оставить практику себе или перейти к живому разбору, чтобы уточнить запрос глубже.</p>
+  <p>Ваши ответы сохранены. Можно оставить практику себе или познакомиться со специалистом, которого навигатор рекомендует для следующего шага.</p>
+  <div class="specialist-kicker">Рекомендованный специалист</div>
+  <article class="specialist-card" aria-labelledby="specialist-name">
+    <img class="specialist-photo" src="expert-diana.jpg" alt="Диана Ким, психолог-консультант и трансформационный коуч" loading="lazy">
+    <div>
+      <div class="specialist-head">
+        <div>
+          <h3 id="specialist-name" class="specialist-name">Диана Ким</h3>
+          <p class="specialist-role">Психолог-консультант · трансформационный коуч</p>
+        </div>
+        <span class="match-badge">Подходит вашему маршруту</span>
+      </div>
+      <p id="specialist-match" class="match-reason">Поможет уточнить запрос и выбрать бережный, реалистичный следующий шаг.</p>
+      <div class="specialist-tags" aria-label="Темы работы">
+        <span>Внутренняя опора</span><span>Деньги и реализация</span><span>Самоценность</span><span>Жизненные переходы</span>
+      </div>
+      <div class="specialist-meta"><span>Онлайн</span><span>Русский язык</span><span>Первичный разбор — 60 минут</span><span>15 000 ₸</span></div>
+      <div class="specialist-actions">
+        <a id="booking" class="btn" href="https://wa.me/77774563866?text=%D0%94%D0%B8%D0%B0%D0%BD%D0%B0%2C%20%D0%B7%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%AF%20%D0%BF%D1%80%D0%BE%D1%88%D0%BB%D0%B0%20AI-%D0%BD%D0%B0%D0%B2%D0%B8%D0%B3%D0%B0%D1%82%D0%BE%D1%80%20%C2%AB%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%C2%BB%20%D0%B8%20%D1%85%D0%BE%D1%87%D1%83%20%D0%BE%D0%B1%D1%81%D1%83%D0%B4%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D0%B9%20%D1%80%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82." target="_blank" rel="noopener" onclick="trackBooking()">Обсудить результат</a>
+        <a class="profile-link" href="specialist-diana.html">Подробнее о специалисте</a>
+      </div>
+    </div>
+  </article>
   <div class="nav">
     <button class="btn secondary" onclick="location.reload()">Пройти заново</button>
-    <a id="booking" class="btn" href="https://dianakim-code.github.io/diana-site/" target="_blank" rel="noopener" onclick="trackBooking()">Узнать о сессии</a>
   </div>
 </section>
 </div>
@@ -386,6 +416,15 @@ function setSendStatus(message){
  notice.textContent=message;
  st.appendChild(notice);
 }
+function specialistMatch(route){
+ const matches={
+  R1:'Диана поможет отделить главную тему от сопутствующей усталости и сформулировать запрос, с которым уже можно двигаться дальше.',
+  R2:'Диана работает с внутренней опорой и перегрузкой — поможет бережно вернуть управляемость без давления и резких решений.',
+  R3:'Диана поможет увидеть психологический механизм остановки и подобрать следующий шаг, который не приведёт к привычному откату.',
+  R4:'Диана поможет выбрать один приоритет и перевести общую цель в конкретное, реалистичное действие.'
+ };
+ return matches[route]||'Диана поможет уточнить запрос и выбрать бережный, реалистичный следующий шаг.';
+}
 async function send(payload){
  await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors'});
 }
@@ -402,6 +441,7 @@ async function submitFeedback(){
  setSendStatus('Сохраняю ответы…');
  try{
    await send(payload);
+   document.getElementById('specialist-match').textContent=specialistMatch(resultData.route);
    document.getElementById('feedback').classList.add('hidden');
    document.getElementById('finish').classList.remove('hidden');
  } catch(e){
