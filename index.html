@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Бережный AI‑навигатор «Платформа»: уточнение ситуации, предварительный запрос и персональная практика." />
+  <meta name="theme-color" content="#5a3658" />
+  <title>Платформа — AI‑навигатор</title>
+  <style>
+    :root{
+      --bg:#f7f5f1; --card:#ffffff; --ink:#2e2630; --muted:#6f6870;
+      --plum:#5a3658; --plum2:#7a4f78; --sage:#dfe8df; --line:#e8e2e7;
+      --soft:#f0ebe9; --accent:#c97e6e; --ok:#e9f2eb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-width:320px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:
+      radial-gradient(circle at 80% 0%,#e9efe9 0,transparent 30%),
+      linear-gradient(180deg,#fbfaf8,#f4f0ee);color:var(--ink)}
+    .wrap{max-width:980px;margin:auto;padding:28px 18px 60px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .brand{font-weight:700;letter-spacing:.02em}.tag{font-size:13px;color:var(--muted)}
+    .shell{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:stretch}
+    .hero,.panel{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:26px;
+      box-shadow:0 18px 50px rgba(71,48,69,.08)}
+    .hero{padding:44px}.panel{padding:26px}
+    h1{font-family:Georgia,serif;font-size:54px;line-height:1.02;margin:0 0 18px;color:var(--plum)}
+    h2{font-family:Georgia,serif;font-size:33px;margin:0 0 15px;color:var(--plum)}
+    h3{font-size:18px;margin:0 0 10px}
+    p{line-height:1.6}.lead{font-size:18px;color:var(--muted)}
+    .btn{min-height:48px;border:0;border-radius:16px;padding:15px 20px;background:var(--plum);color:white;font-size:16px;
+      font-weight:650;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+    .btn:hover{transform:translateY(-1px);background:var(--plum2)}
+    .btn:focus-visible,.option:focus-visible,.score button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid rgba(90,54,88,.3);outline-offset:2px}
+    .btn.secondary{background:white;color:var(--plum);border:1px solid var(--line)}
+    .btn.full{width:100%}.small{font-size:13px;color:var(--muted)}
+    .step{display:none}.step.active{display:block}
+    .progress{height:8px;background:#eee8ec;border-radius:999px;overflow:hidden;margin-bottom:18px}
+    .bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--plum));width:0;transition:.3s}
+    .bridge{padding:13px 15px;background:var(--sage);border-radius:14px;margin:0 0 15px;color:#425246}
+    .options{display:grid;gap:10px;margin:18px 0}
+    .option{min-height:48px;padding:14px 16px;border:1px solid var(--line);border-radius:15px;background:white;cursor:pointer;text-align:left;font-size:15px;touch-action:manipulation}
+    .option:hover,.option.selected{border-color:var(--plum2);background:#faf7fa}
+    textarea,input{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;font:inherit;background:#fff}
+    input[type="checkbox"]{width:auto;min-width:18px;height:18px;margin:2px 0 0;accent-color:var(--plum)}
+    label{line-height:1.5}.consent{display:flex;align-items:flex-start;gap:10px}
+    textarea{min-height:100px;resize:vertical}
+    .nav{display:flex;gap:10px;justify-content:space-between;margin-top:18px}
+    .result-card{padding:18px;border-radius:18px;background:var(--soft);margin:14px 0}
+    .request{background:var(--ok);border-left:5px solid #7ca586}
+    .practice{background:#f7eee9;border-left:5px solid var(--accent)}
+    .why{display:grid;gap:8px;margin:12px 0}.why div{padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
+    .scores{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .score{display:flex;gap:7px;flex-wrap:wrap}.score button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;touch-action:manipulation}
+    .score button.on{background:var(--plum);color:white}
+    .notice{font-size:13px;color:var(--muted);padding:12px;border:1px dashed #d7cfd5;border-radius:12px}
+    .hidden{display:none!important}.success{padding:16px;background:var(--ok);border-radius:14px;margin-top:12px}
+    @media(max-width:760px){
+      .wrap{padding:20px 14px 44px}.shell{grid-template-columns:1fr;gap:18px}.hero{padding:30px 24px}.panel{padding:22px}
+      h1{font-size:clamp(38px,11vw,46px)}h2{font-size:30px}
+    }
+    @media(max-width:480px){
+      header{align-items:flex-start;gap:14px}.tag{max-width:145px;text-align:right}
+      .hero,.panel{border-radius:20px}.hero{padding:26px 20px}.panel{padding:20px 18px}
+      .lead{font-size:17px}.nav{flex-direction:column-reverse}.nav .btn{width:100%}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="brand">ПЛАТФОРМА</div><div class="tag">бережный AI‑навигатор</div></header>
+
+<div id="intro" class="shell">
+  <section class="hero">
+    <h1>Ты можешь не знать, что с тобой происходит…</h1>
+    <p class="lead">Ответь на несколько бережных вопросов. Навигатор поможет собрать ситуацию, сформулировать предварительный запрос и увидеть реалистичный следующий шаг.</p>
+    <button class="btn" onclick="start()">Начать диалог</button>
+    <p class="small">7–10 минут · конфиденциально · без диагнозов</p>
+  </section>
+  <aside class="panel">
+    <h3>Что будет в конце</h3>
+    <div class="why">
+      <div>Короткое отражение вашей ситуации</div>
+      <div>Предварительная формулировка запроса</div>
+      <div>Один посильный шаг или практика</div>
+      <div>Возможность перейти к живому разбору</div>
+    </div>
+    <p class="notice">Навигатор не ставит медицинских или психиатрических диагнозов и не заменяет специалиста.</p>
+  </aside>
+</div>
+
+<section id="app" class="panel hidden">
+  <div class="progress" role="progressbar" aria-label="Прогресс диалога" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar" class="bar"></div></div>
+  <div id="bridge" class="bridge hidden"></div>
+  <div id="question"></div>
+  <div class="nav">
+    <button id="back" class="btn secondary" onclick="goBack()">Назад</button>
+    <button id="next" class="btn" onclick="goNext()">Продолжить</button>
+  </div>
+</section>
+
+<section id="result" class="panel hidden">
+  <h2>Что сейчас складывается</h2>
+  <div id="reflection" class="result-card"></div>
+  <div id="evidence" class="why"></div>
+  <div id="request" class="result-card request"></div>
+  <div id="practice" class="result-card practice"></div>
+  <p class="notice">Это предварительное отражение, а не диагноз. Его задача — помочь яснее начать разговор с собой или со специалистом.</p>
+  <button class="btn full" onclick="showFeedback()">Продолжить и поделиться впечатлением</button>
+</section>
+
+<section id="feedback" class="panel hidden">
+  <h2>Короткая обратная связь</h2>
+  <p>Она поможет сделать навигатор точнее.</p>
+  <label>Насколько яснее стало, с чем работать?</label>
+  <div id="clarity" class="score"></div>
+  <br>
+  <label>Насколько вы доверяете полученной рекомендации?</label>
+  <div id="trust" class="score"></div>
+  <br>
+  <label>Насколько вы узнали себя в результате?</label>
+  <div class="options" id="recognition">
+    <button class="option" data-v="Да, точно">Да, точно</button>
+    <button class="option" data-v="Частично">Частично</button>
+    <button class="option" data-v="Скорее нет">Скорее нет</button>
+  </div>
+  <label>Чего не хватило или что осталось непонятным?</label>
+  <textarea id="comment" placeholder="Можно написать свободно"></textarea>
+  <br><br>
+  <label>Что вы готовы сделать дальше?</label>
+  <div class="options" id="readiness">
+    <button class="option" data-v="Попробую практику">Попробую практику</button>
+    <button class="option" data-v="Подумаю позже">Подумаю позже</button>
+    <button class="option" data-v="Запишусь к специалисту">Запишусь к специалисту</button>
+    <button class="option" data-v="Ничего">Пока ничего</button>
+  </div>
+  <label>Имя и контакт — только если хотите, чтобы с вами связались</label>
+  <input id="name" placeholder="Имя">
+  <br><br>
+  <input id="contact" placeholder="WhatsApp / Telegram / телефон">
+  <br><br>
+  <label class="consent"><input type="checkbox" id="consent"> <span>Согласна на обработку ответов в рамках тестирования</span></label>
+  <br><br>
+  <button class="btn full" onclick="submitFeedback()">Отправить обратную связь</button>
+  <div id="sendStatus" role="status" aria-live="polite"></div>
+</section>
+
+<section id="finish" class="panel hidden">
+  <h2>Спасибо</h2>
+  <p>Ваши ответы сохранены. Можно оставить практику себе или перейти к живому разбору, чтобы уточнить запрос глубже.</p>
+  <div class="nav">
+    <button class="btn secondary" onclick="location.reload()">Пройти заново</button>
+    <a id="booking" class="btn" href="https://dianakim-code.github.io/diana-site/" target="_blank" rel="noopener" onclick="trackBooking()">Узнать о сессии</a>
+  </div>
+</section>
+</div>
+
+<script>
+const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
+const sessionId=globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now());
+const answers={}; let idx=0, history=[], resultData={};
+
+const baseQuestions=[
+ {id:'mainSituation',q:'В какой области сейчас сильнее всего ощущается необходимость перемен?',type:'single',
+  o:['Внутреннее состояние','Работа, дело или реализация','Деньги и доход','Отношения или семья','Образ жизни','Всё связано, сложно выделить одно']},
+ {id:'mainConcern',q:'Что беспокоит сильнее всего?',type:'single',
+  o:['Не понимаю, чего хочу','Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь','Слишком устала, чтобы разбираться и действовать','Боюсь потерять стабильность','У меня много знаний и попыток, но нет цельного маршрута','Ничего из этого']},
+ {id:'duration',q:'Как давно это продолжается?',type:'single',o:['Меньше месяца','1–3 месяца','4–12 месяцев','Больше года','Трудно сказать']},
+ {id:'lifeImpact',q:'На что это влияет сильнее всего?',type:'multi',
+  o:['Доход или работа','Энергия и самочувствие','Отношения','Уверенность в себе','Сон, тревога или способность сосредоточиться','Время и упущенные возможности']},
+ {id:'triedBefore',q:'Что вы уже пробовали?',type:'multi',
+  o:['Размышляла и составляла планы','Проходила обучение','Обращалась к психологу или коучу','Делала конкретные шаги','Разговаривала с близкими','Пока ничего']},
+ {id:'desiredResult',q:'Что сейчас было бы самым полезным результатом?',type:'single',
+  o:['Понять, что со мной происходит','Сформулировать настоящий запрос','Увидеть реалистичный маршрут','Вернуть силы и внутреннюю опору','Принять конкретное решение','Поговорить со специалистом']},
+ {id:'currentNeed',q:'Какой формат поддержки сейчас ближе?',type:'single',
+  o:['Сначала попробую сама','Короткий живой разбор результата','Полная первичная сессия','Пока просто хочу ясности']},
+ {id:'resourceLevel',q:'Сколько у вас сейчас ресурса для изменений?',type:'single',
+  o:['Почти нет сил','Могу сделать один небольшой шаг','Могу действовать, если будет понятный план','Готова к более глубокой работе']},
+ {id:'safetyLevel',q:'Чувствуете ли вы себя сейчас в безопасности?',type:'single',
+  o:['Да','Да, но мне тяжело','Неприятно, но справляюсь','Нет, мне нужна срочная помощь']}
+];
+
+function extraQuestions(){
+ const out=[];
+ if(answers.mainSituation==='Всё связано, сложно выделить одно'){
+   out.push({id:'focusClarifier',q:'Если выбрать одну точку, изменение в которой даст больше всего облегчения, что это?',type:'single',
+    o:['Состояние и энергия','Работа и реализация','Деньги','Отношения','Пока не могу выбрать']});
+ }
+ if(answers.mainConcern==='Ничего из этого'){
+   out.push({id:'customConcern',q:'Опишите своими словами, что сейчас труднее всего.',type:'text'});
+ }
+ if(answers.mainConcern==='У меня много знаний и попыток, но нет цельного маршрута'){
+   out.push({id:'routeGap',q:'Чего больше всего не хватает, чтобы знания сложились в движение?',type:'single',
+    o:['Понять главное направление','Выбрать один приоритет','Увидеть, что именно меня останавливает','Оценить риски и ресурсы','Получить поддержку и обратную связь']});
+ }
+ if(['Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь'].includes(answers.mainConcern)){
+   out.push({id:'blockType',q:'Что чаще происходит перед остановкой?',type:'single',
+    o:['Появляется страх ошибки','Становится слишком много задач','Теряю смысл или мотивацию','Возникает сомнение в себе','Вмешиваются внешние обстоятельства','Пока не понимаю']});
+ }
+ return out;
+}
+function questions(){ return [...baseQuestions.slice(0,2), ...extraQuestions(), ...baseQuestions.slice(2)]; }
+
+function start(){
+ document.getElementById('intro').classList.add('hidden');
+ document.getElementById('app').classList.remove('hidden');
+ render();
+}
+function bridgeText(i){
+ const a=answers;
+ if(i===1) return 'Спасибо. Уже начинает проявляться основная тема. Уточним, как именно она переживается.';
+ if(i===2 && (a.mainSituation==='Всё связано, сложно выделить одно'||a.mainConcern==='Ничего из этого')) return 'Здесь важно не торопиться с выводом. Один уточняющий вопрос поможет не выдать слишком общий результат.';
+ if(i>=3) return 'Картина становится яснее. Теперь посмотрим не только на проблему, но и на ресурсы, риски и то, что уже было испробовано.';
+ return '';
+}
+function render(){
+ const qs=questions(); if(idx>=qs.length){makeResult();return}
+ const q=qs[idx]; const b=bridgeText(idx);
+ const bridge=document.getElementById('bridge'); bridge.textContent=b; bridge.classList.toggle('hidden',!b);
+ const progress=Math.round(idx/qs.length*100);
+ document.getElementById('bar').style.width=progress+'%';
+ document.querySelector('.progress').setAttribute('aria-valuenow',String(progress));
+ let html=`<h2>${q.q}</h2>`;
+ if(q.type==='text'){
+   html+=`<textarea id="txt">${answers[q.id]||''}</textarea>`;
+ } else {
+   html+=`<div class="options">`+q.o.map(x=>`<button class="option ${(Array.isArray(answers[q.id])?answers[q.id].includes(x):answers[q.id]===x)?'selected':''}" onclick="pick('${q.id}',${JSON.stringify(x)},'${q.type}',this)">${x}</button>`).join('')+`</div>`;
+ }
+ document.getElementById('question').innerHTML=html;
+ document.getElementById('back').style.visibility=idx===0?'hidden':'visible';
+}
+function pick(id,val,type,el){
+ if(id==='mainSituation' && answers.mainSituation!==val) delete answers.focusClarifier;
+ if(id==='mainConcern' && answers.mainConcern!==val){
+   delete answers.customConcern; delete answers.routeGap; delete answers.blockType;
+ }
+ if(type==='multi'){
+   const arr=answers[id]||[]; answers[id]=arr.includes(val)?arr.filter(x=>x!==val):[...arr,val];
+ } else answers[id]=val;
+ render();
+}
+function goNext(){
+ const q=questions()[idx];
+ if(q.type==='text') answers[q.id]=document.getElementById('txt').value.trim();
+ if(!answers[q.id] || (Array.isArray(answers[q.id])&&!answers[q.id].length)){alert('Выберите или напишите ответ');return}
+ history.push(idx); idx++; render();
+}
+function goBack(){ if(!history.length)return; idx=history.pop(); render(); }
+
+function infer(){
+ const a=answers;
+ let route='R4', title='Собрать запрос и выбрать точку приложения усилий';
+ if(a.resourceLevel==='Почти нет сил'){route='R2';title='Сначала восстановить опору и снизить перегрузку'}
+ else if(a.desiredResult==='Сформулировать настоящий запрос' || a.mainSituation==='Всё связано, сложно выделить одно'){route='R1';title='Прояснить, что сейчас главное'}
+ else if(['Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь'].includes(a.mainConcern)){route='R3';title='Найти конкретный механизм остановки'}
+ const evidence=[];
+ evidence.push(`Основная сфера: ${a.focusClarifier && a.focusClarifier!=='Пока не могу выбрать'?a.focusClarifier:a.mainSituation}.`);
+ evidence.push(`Главное переживание: ${a.customConcern||a.mainConcern}.`);
+ evidence.push(`Это продолжается: ${a.duration.toLowerCase()}.`);
+ if(a.routeGap) evidence.push(`Ключевой дефицит, который вы отметили: ${a.routeGap.toLowerCase()}.`);
+ if(a.blockType) evidence.push(`Перед остановкой чаще возникает: ${a.blockType.toLowerCase()}.`);
+ let reflection='',request='',practice='';
+ if(route==='R2'){
+  reflection=`Сейчас вопрос выглядит не как недостаток знаний или силы воли. Вы отмечаете низкий ресурс, а значит большие решения могут восприниматься как дополнительная нагрузка. Сначала важно вернуть минимальную управляемость и опору.`;
+  request=`Предварительный запрос: «Как снизить внутреннюю перегрузку и вернуть достаточно сил, чтобы спокойно определить следующий шаг?»`;
+  practice=`Практика «Минимум опоры»: назовите 1 вещь, которую сегодня можно не делать; 1 источник напряжения, который можно уменьшить; 1 маленькое действие на 10 минут, после которого станет чуть легче.`;
+ }else if(route==='R3'){
+  reflection=`Вы уже видите направление, но движение останавливается. Поэтому проблема, вероятно, не в отсутствии цели. Важно определить конкретный механизм остановки: страх, перегрузку, сомнение, потерю смысла или внешнее ограничение.`;
+  request=`Предварительный запрос: «Что именно останавливает меня перед следующим шагом и как пройти этот момент без привычного отката?»`;
+  practice=`Практика «Момент остановки»: вспомните последний конкретный эпизод. Запишите: какой шаг собирались сделать → какая мысль появилась → что почувствовало тело → что сделали вместо шага. Ищите не “почему я такая”, а точный момент разворота.`;
+ }else if(route==='R1'){
+  reflection=`Ситуация затрагивает несколько сфер, и преждевременный совет был бы слишком общим. Сейчас полезнее не выбирать решение, а найти одну точку, изменение в которой даст наибольшее облегчение или ясность.`;
+  request=`Предварительный запрос: «Как определить главную тему моего перехода и отделить её от сопутствующей усталости, тревоги и внешних обстоятельств?»`;
+  practice=`Практика «Три колонки»: 1) что меня больше не устраивает; 2) чего я хочу вместо этого; 3) что в моей зоне влияния в ближайшие семь дней. Выберите одну строку, где появляется больше всего энергии или облегчения.`;
+ }else{
+  reflection=`Вы уже предпринимали попытки и располагаете ресурсом для действий. Сейчас важно не собирать ещё больше информации, а определить один приоритет и проверить его небольшим реальным шагом.`;
+  request=`Предварительный запрос: «Какой один приоритет стоит выбрать сейчас и какое действие поможет проверить его без резкого риска?»`;
+  practice=`Практика «Шаг до шага»: сформулируйте не большую цель, а действие, которое даст новую информацию за 7 дней: один разговор, один тест, одна заявка, один расчёт или один пробный формат.`;
+ }
+ return {route,title,evidence,reflection,request,practice};
+}
+function makeResult(){
+ resultData=infer();
+ document.getElementById('app').classList.add('hidden');
+ document.getElementById('result').classList.remove('hidden');
+ document.getElementById('reflection').innerHTML=`<h3>${resultData.title}</h3><p>${resultData.reflection}</p>`;
+ document.getElementById('evidence').innerHTML=`<h3>Почему навигатор пришёл к этому выводу</h3>`+resultData.evidence.map(x=>`<div>${x}</div>`).join('');
+ document.getElementById('request').innerHTML=`<h3>Как можно сформулировать запрос</h3><p>${resultData.request}</p>`;
+ document.getElementById('practice').innerHTML=`<h3>Первый шаг</h3><p>${resultData.practice}</p>`;
+}
+let clarity='',trust='',recognition='',readiness='';
+function scoreBox(id,setter){
+ const el=document.getElementById(id);
+ el.innerHTML=[1,2,3,4,5].map(n=>`<button type="button" aria-label="Оценка ${n} из 5" aria-pressed="false" onclick="${setter}(${n})">${n}</button>`).join('');
+}
+function setClarity(n){clarity=n;mark('clarity',n)} function setTrust(n){trust=n;mark('trust',n)}
+function mark(id,n){[...document.getElementById(id).children].forEach((b,i)=>{b.classList.toggle('on',i<n);b.setAttribute('aria-pressed',String(i<n))})}
+function setupChoices(id,cb){
+ document.querySelectorAll(`#${id} .option`).forEach(b=>b.onclick=()=>{
+   document.querySelectorAll(`#${id} .option`).forEach(x=>x.classList.remove('selected'));
+   b.classList.add('selected'); cb(b.dataset.v);
+ });
+}
+function showFeedback(){
+ document.getElementById('result').classList.add('hidden');document.getElementById('feedback').classList.remove('hidden');
+ scoreBox('clarity','setClarity');scoreBox('trust','setTrust');
+ setupChoices('recognition',v=>recognition=v);setupChoices('readiness',v=>readiness=v);
+}
+async function send(payload){
+ await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors'});
+}
+async function submitFeedback(){
+ if(!clarity||!trust||!recognition||!readiness){alert('Пожалуйста, заполните оценки и выберите варианты');return}
+ if(!document.getElementById('consent').checked){alert('Нужно согласие на обработку ответов');return}
+ const payload={sessionId,status:'завершено',...answers,route:resultData.route,practice:resultData.practice,
+  clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:false,
+  comment:`Узнала себя: ${recognition} · ${document.getElementById('comment').value.trim()}`,
+  name:document.getElementById('name').value.trim(),contact:document.getElementById('contact').value.trim(),
+  consent:true,source:'AI-навигатор Платформа v2'};
+ const st=document.getElementById('sendStatus');st.innerHTML='<div class="success">Сохраняю ответы…</div>';
+ try{await send(payload);document.getElementById('feedback').classList.add('hidden');document.getElementById('finish').classList.remove('hidden')}
+ catch(e){st.innerHTML='<div class="success">Не удалось сохранить. Попробуйте ещё раз.</div>'}
+}
+function trackBooking(){send({sessionId,status:'переход к записи',...answers,route:resultData.route,practice:resultData.practice,
+ clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:true,
+ comment:`Узнала себя: ${recognition} · ${document.getElementById('comment').value.trim()}`,
+ name:document.getElementById('name').value.trim(),contact:document.getElementById('contact').value.trim(),
+ consent:true,source:'AI-навигатор Платформа v2'})}
+</script>
+</body></html>
