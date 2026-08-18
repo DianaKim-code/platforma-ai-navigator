@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Каталог специалистов платформы для женщин 35+.">
+  <meta name="theme-color" content="#f5eee4">
+  <link rel="icon" href="data:,">
+  <title>Специалисты платформы</title>
+  <style>
+    :root{--bg:#f5eee4;--card:#fffaf3;--ink:#3e2638;--muted:#766a67;--plum:#45283e;--plum2:#684259;--line:#dacfc4;--soft:#eee5dc;--accent:#c8623d;--accent2:#d77b55;--sage:#e6e5d7}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-width:320px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 18% 10%,rgba(255,255,255,.7),transparent 28%),linear-gradient(135deg,#f8f1e7,#f2e9dd);color:var(--ink)}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;background:repeating-radial-gradient(circle at 0 0,rgba(69,40,62,.14) 0 1px,transparent 1px 4px)}
+    a{color:inherit}
+    .wrap{position:relative;max-width:1240px;margin:auto;padding:28px clamp(22px,4.5vw,64px) 64px}
+    header{min-height:94px;display:flex;justify-content:space-between;align-items:center;gap:24px;border-bottom:1px solid rgba(69,40,62,.16)}
+    .brand{text-decoration:none;display:grid;gap:2px}
+    .brand strong{font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:400;letter-spacing:.055em;color:var(--plum)}
+    .brand span{font-size:13px;color:var(--accent)}
+    .btn{min-height:52px;border:0;border-radius:14px;padding:15px 22px;background:var(--plum);color:#fff;font-size:15px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;text-align:center;transition:.2s}
+    .btn:hover{transform:translateY(-2px);background:var(--plum2)}
+    .btn.secondary{background:#fff;color:var(--plum);border:1px solid var(--line)}
+    .btn:focus-visible,.text-link:focus-visible{outline:3px solid rgba(90,54,88,.3);outline-offset:3px}
+    .intro{max-width:900px;padding:72px 0 34px}
+    .eyebrow{margin:0 0 12px;color:var(--accent);font-size:12px;font-weight:750;letter-spacing:.09em;text-transform:uppercase}
+    h1{max-width:850px;margin:0 0 22px;font-family:Georgia,'Times New Roman',serif;font-size:clamp(48px,6vw,76px);font-weight:400;letter-spacing:-.03em;line-height:1;color:var(--plum)}
+    .lead{max-width:780px;margin:0 0 16px;font-size:19px;line-height:1.58}
+    .explain{max-width:780px;margin:0;padding:16px 18px;border-left:4px solid var(--accent);border-radius:0 14px 14px 0;background:rgba(255,250,243,.8);color:var(--muted);line-height:1.58}
+    .catalog-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:38px 0 18px}
+    .catalog-head h2{margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:400;color:var(--plum)}
+    .catalog-note{margin:0;color:var(--muted);font-size:14px}
+    .catalog-grid{display:grid;grid-template-columns:minmax(0,900px);gap:22px}
+    .specialist-card{display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px;padding:24px;background:rgba(255,250,243,.94);border:1px solid var(--line);border-radius:24px;box-shadow:0 18px 45px rgba(71,48,69,.08)}
+    .portrait{min-height:330px;border-radius:18px;overflow:hidden;background:var(--soft)}
+    .portrait img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 18%}
+    .verified{display:inline-flex;margin-left:8px;padding:5px 8px;border-radius:999px;background:var(--sage);color:#46634d;font-size:11px;letter-spacing:0;text-transform:none}
+    h2.name{margin:0 0 5px;font-family:Georgia,'Times New Roman',serif;font-size:35px;font-weight:400;color:var(--plum)}
+    .role{margin:0 0 18px;color:var(--muted);line-height:1.5}
+    .themes{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+    .themes span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:0 0 22px}
+    .meta div{padding-top:9px;border-top:1px solid var(--line)}
+    .meta small{display:block;margin-bottom:3px;color:var(--muted)}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    .footer-action{display:flex;justify-content:space-between;align-items:center;gap:22px;margin-top:42px;padding:24px;border:1px solid var(--line);border-radius:20px;background:rgba(255,250,243,.75)}
+    .footer-action p{margin:0;color:var(--muted);line-height:1.5}
+    footer{display:flex;justify-content:space-between;gap:20px;margin-top:38px;padding-top:22px;border-top:1px solid rgba(69,40,62,.16);color:var(--muted);font-size:13px}
+    @media(max-width:760px){
+      .wrap{padding:20px 14px 44px}
+      header{min-height:78px}
+      .brand strong{font-size:24px}
+      .intro{padding:50px 4px 24px}
+      h1{font-size:clamp(44px,12vw,60px)}
+      .lead{font-size:17px}
+      .catalog-head{align-items:start;flex-direction:column}
+      .specialist-card{grid-template-columns:1fr;padding:18px}
+      .portrait{height:420px;min-height:0}
+      .footer-action{align-items:stretch;flex-direction:column}
+      .footer-action .btn{width:100%}
+    }
+    @media(max-width:480px){
+      header>.btn{padding:11px 13px;min-height:44px;font-size:13px}
+      .brand strong{font-size:21px}
+      .brand span{font-size:11px}
+      .intro{padding-top:42px}
+      h1{font-size:42px}
+      .explain{padding:14px}
+      .specialist-card{padding:15px;border-radius:20px}
+      .portrait{height:340px}
+      h2.name{font-size:31px}
+      .meta{grid-template-columns:1fr}
+      .actions{display:grid}
+      .actions .btn{width:100%}
+      footer{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="index.html"><strong>ПЛАТФОРМА</strong><span>каталог специалистов</span></a>
+      <a class="btn secondary" href="index.html">Пройти AI-навигатор</a>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">Бережный выбор поддержки</p>
+        <h1>Специалисты платформы</h1>
+        <p class="lead">Здесь собраны специалисты, к которым можно обратиться после прохождения AI-навигатора или самостоятельно. Выбор специалиста остаётся за вами.</p>
+        <p class="explain">Платформа помогает увидеть возможное соответствие между вашим запросом и направлением работы специалиста, но не принимает решение за вас.</p>
+      </section>
+
+      <div class="catalog-head">
+        <h2>Профили специалистов</h2>
+        <p class="catalog-note">Каталог будет расширяться</p>
+      </div>
+
+      <section class="catalog-grid" aria-label="Каталог специалистов">
+        <article class="specialist-card" aria-labelledby="diana-name">
+          <div class="portrait"><img src="expert-diana.jpg" alt="Диана Ким, психолог-консультант и трансформационный коуч"></div>
+          <div>
+            <p class="eyebrow">Специалист платформы <span class="verified">Профиль подтверждён</span></p>
+            <h2 class="name" id="diana-name">Диана Ким</h2>
+            <p class="role">Психолог-консультант, трансформационный коуч</p>
+            <div class="themes" aria-label="Основные темы">
+              <span>Жизненные переходы</span>
+              <span>Внутренняя опора</span>
+              <span>Деньги и реализация</span>
+              <span>Самоценность</span>
+            </div>
+            <div class="meta">
+              <div><small>Формат</small>Онлайн</div>
+              <div><small>Язык</small>Русский</div>
+              <div><small>Первичный разбор</small>60 минут</div>
+              <div><small>Стоимость</small>15 000 ₸</div>
+            </div>
+            <div class="actions">
+              <a class="btn" data-profile-link href="specialist-diana.html">Подробнее о специалисте</a>
+              <a class="btn secondary" data-whatsapp-link href="https://wa.me/77774563866?text=%D0%94%D0%B8%D0%B0%D0%BD%D0%B0%2C%20%D0%B7%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%AF%20%D0%BF%D1%80%D0%BE%D1%88%D0%BB%D0%B0%20AI-%D0%BD%D0%B0%D0%B2%D0%B8%D0%B3%D0%B0%D1%82%D0%BE%D1%80%20%C2%AB%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%C2%BB%20%D0%B8%20%D1%85%D0%BE%D1%87%D1%83%20%D0%BE%D0%B1%D1%81%D1%83%D0%B4%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D0%B9%20%D1%80%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82." target="_blank" rel="noopener">Обсудить запрос</a>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="footer-action">
+        <p>Можно сначала пройти навигатор и получить предварительную точку начала — или выбрать специалиста самостоятельно.</p>
+        <a class="btn" href="index.html">Пройти AI-навигатор</a>
+      </section>
+    </main>
+
+    <footer><span>© Платформа · каталог специалистов</span><span>Выбор всегда остаётся за пользователем</span></footer>
+  </div>
+
+  <script>
+    const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
+    const SESSION_KEY='platformaSessionId';
+    function createSessionId(){return globalThis.crypto?.randomUUID?globalThis.crypto.randomUUID():`catalog_${Date.now()}_${Math.random().toString(36).slice(2)}`}
+    function getSessionId(){
+      try{
+        const existing=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY);
+        const value=existing||createSessionId();
+        sessionStorage.setItem(SESSION_KEY,value);
+        return value;
+      }catch(error){return createSessionId()}
+    }
+    const sessionId=getSessionId();
+    const IS_LOCAL_PREVIEW=['localhost','127.0.0.1'].includes(location.hostname);
+    const previewEvents=[];
+    globalThis.__platformaCatalogPreviewEvents=previewEvents;
+    function send(payload){
+      if(IS_LOCAL_PREVIEW){previewEvents.push(payload);return Promise.resolve({preview:true})}
+      return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true});
+    }
+    function track(event,source){
+      send({sessionId,status:event,event,specialistId:'diana_kim',source,page:'specialists_catalog',timestamp:new Date().toISOString()}).catch(()=>{});
+    }
+    document.querySelector('[data-profile-link]').addEventListener('click',()=>track('specialist_profile_clicked','specialists_catalog'));
+    document.querySelector('[data-whatsapp-link]').addEventListener('click',()=>track('profile_whatsapp_clicked','specialists_catalog'));
+  </script>
+</body>
+</html>

@@ -32,7 +32,7 @@
     <a class="back" href="index.html">← Вернуться к навигатору</a>
   </header>
   <main class="wrap">
-    <nav class="crumbs" aria-label="Хлебные крошки"><a href="index.html">Платформа</a><span>›</span><span>Специалисты</span><span>›</span>Диана Ким</nav>
+    <nav class="crumbs" aria-label="Хлебные крошки"><a href="index.html">Платформа</a><span>›</span><a href="specialists.html">Специалисты</a><span>›</span>Диана Ким</nav>
     <section class="hero">
       <div class="portrait"><img src="expert-diana.jpg" alt="Диана Ким, психолог-консультант и трансформационный коуч"></div>
       <div>
@@ -89,7 +89,14 @@
       } catch(e){return createSessionId()}
     }
     const sessionId=getProfileSessionId();
+    const IS_LOCAL_PREVIEW=['localhost','127.0.0.1'].includes(location.hostname);
+    const previewEvents=[];
+    globalThis.__platformaProfilePreviewEvents=previewEvents;
     function send(payload){
+      if(IS_LOCAL_PREVIEW){
+        previewEvents.push(payload);
+        return Promise.resolve({preview:true});
+      }
       return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true});
     }
     function trackProfileWhatsApp(source){
