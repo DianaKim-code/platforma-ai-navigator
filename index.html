@@ -3,473 +3,110 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="Бережный AI‑навигатор «Платформа»: уточнение ситуации, предварительный запрос и персональная практика." />
+  <meta name="description" content="Бережный AI‑навигатор «Платформа»: приоритетная тема, зона влияния и реалистичный первый шаг." />
   <meta name="theme-color" content="#f5eee4" />
   <link rel="icon" href="data:," />
   <title>Платформа — AI‑навигатор</title>
   <style>
-    :root{
-      --bg:#f5eee4; --card:#fffaf3; --ink:#3e2638; --muted:#766a67;
-      --plum:#45283e; --plum2:#684259; --sage:#e6e5d7; --line:#dacfc4;
-      --soft:#eee5dc; --accent:#c8623d; --accent2:#d77b55; --ok:#e7eee1;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;min-width:320px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:
-      radial-gradient(circle at 18% 10%,rgba(255,255,255,.7),transparent 28%),
-      linear-gradient(135deg,#f8f1e7,#f2e9dd);color:var(--ink)}
+    :root{--bg:#f5eee4;--card:#fffaf3;--ink:#3e2638;--muted:#766a67;--plum:#45283e;--plum2:#684259;--sage:#e6e5d7;--line:#dacfc4;--soft:#eee5dc;--accent:#c8623d;--accent2:#d77b55;--ok:#e7eee1}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}
+    body{margin:0;min-width:320px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 18% 10%,rgba(255,255,255,.7),transparent 28%),linear-gradient(135deg,#f8f1e7,#f2e9dd);color:var(--ink)}
     body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;background:repeating-radial-gradient(circle at 0 0,rgba(69,40,62,.14) 0 1px,transparent 1px 4px)}
-    .wrap{max-width:1500px;margin:auto;padding:28px clamp(22px,4.5vw,72px) 64px}
-    header{min-height:94px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(69,40,62,.16);margin-bottom:0}
-    .brand-block{display:grid;gap:2px}.brand{font-family:Georgia,'Times New Roman',serif;font-size:32px;letter-spacing:.055em;color:var(--plum)}
-    .brand-subtitle{font-size:14px;color:var(--accent)}.tag{font-size:14px;color:var(--muted);letter-spacing:.02em}
-    .shell{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:clamp(30px,4vw,70px);align-items:stretch}
-    .hero{display:flex;flex-direction:column;justify-content:center;padding:72px 0 64px 14px;min-height:650px}
-    .hero-visual{min-height:650px;overflow:hidden;border-radius:48% 0 0 44% / 28% 0 0 36%;margin-right:calc(clamp(22px,4.5vw,72px) * -1)}
-    .hero-visual img{width:100%;height:100%;display:block;object-fit:cover;object-position:66% center}.hero-visual.image-fallback{background:radial-gradient(circle at 68% 28%,rgba(255,255,255,.78),transparent 24%),linear-gradient(145deg,#e7dfd2,#cfa98e 55%,#69465d)}
-    .panel{background:rgba(255,250,243,.9);border:1px solid var(--line);border-radius:26px;box-shadow:0 18px 50px rgba(71,48,69,.08);padding:28px}
-    .wrap>.panel{max-width:940px;margin:34px auto 0}
-    .intro-panel{grid-column:1/-1;padding:34px 12px 0;border-top:1px solid rgba(69,40,62,.16)}
-    .intro-panel .why{grid-template-columns:repeat(4,1fr);gap:12px}.intro-panel .notice{margin-top:18px}
-    h1{max-width:780px;font-family:Georgia,'Times New Roman',serif;font-size:clamp(58px,5.3vw,84px);font-weight:400;letter-spacing:-.035em;line-height:.98;margin:0 0 28px;color:var(--plum)}
-    h2{font-family:Georgia,'Times New Roman',serif;font-size:35px;font-weight:400;margin:0 0 15px;color:var(--plum)}
-    h3{font-size:18px;margin:0 0 10px}
-    p{line-height:1.6}.lead{max-width:620px;font-size:20px;line-height:1.5;color:var(--ink);margin:0 0 32px}
-    .btn{min-height:52px;border:0;border-radius:14px;padding:16px 24px;background:var(--plum);color:white;font-size:16px;
-      font-weight:650;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
-    .hero .btn{align-self:flex-start;min-width:300px;min-height:72px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:22px;box-shadow:0 12px 26px rgba(164,78,46,.16)}
-    .btn:hover{transform:translateY(-2px);background:var(--plum2)}.hero .btn:hover{background:linear-gradient(135deg,#b65332,#cd704b)}
-    .btn:focus-visible,.option:focus-visible,.score button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid rgba(90,54,88,.3);outline-offset:2px}
-    .btn.secondary{background:white;color:var(--plum);border:1px solid var(--line)}
-    .btn.full{width:100%}.btn:disabled{opacity:.58;cursor:not-allowed;transform:none}.small{font-size:14px;color:#8a7b75;margin-top:28px}.small:before{content:"•";color:var(--accent);font-size:20px;margin-right:12px}
-    .step{display:none}.step.active{display:block}
-    .progress{height:8px;background:#eee8ec;border-radius:999px;overflow:hidden;margin-bottom:18px}
-    .bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--plum));width:0;transition:.3s}
-    .bridge{padding:13px 15px;background:var(--sage);border-radius:14px;margin:0 0 15px;color:#425246}
-    .options{display:grid;gap:10px;margin:18px 0}
-    .option{min-height:48px;padding:14px 16px;border:1px solid var(--line);border-radius:15px;background:white;cursor:pointer;text-align:left;font-size:15px;touch-action:manipulation}
-    .option:hover,.option.selected{border-color:var(--plum2);background:#faf7fa}
-    textarea,input{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;font:inherit;background:#fff}
-    input[type="checkbox"]{width:auto;min-width:18px;height:18px;margin:2px 0 0;accent-color:var(--plum)}
-    label{line-height:1.5}.consent{display:flex;align-items:flex-start;gap:10px}
-    textarea{min-height:100px;resize:vertical}
-    .nav{display:flex;gap:10px;justify-content:space-between;margin-top:18px}
-    .result-card{padding:18px;border-radius:18px;background:var(--soft);margin:14px 0}
-    .request{background:var(--ok);border-left:5px solid #7ca586}
-    .practice{background:#f7eee9;border-left:5px solid var(--accent)}
-    .why{display:grid;gap:8px;margin:12px 0}.why div{padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
-    .scores{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .score{display:flex;gap:7px;flex-wrap:wrap}.score button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;touch-action:manipulation}
-    .score button.on{background:var(--plum);color:white}
-    .notice{font-size:13px;color:var(--muted);padding:12px;border:1px dashed #d7cfd5;border-radius:12px}
-    .hidden{display:none!important}.success{padding:16px;background:var(--ok);border-radius:14px;margin-top:12px}
-    .specialist-kicker{margin:26px 0 10px;color:var(--accent);font-size:13px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
-    .specialist-card{display:grid;grid-template-columns:150px minmax(0,1fr);gap:22px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 32px rgba(71,48,69,.07)}
-    .specialist-photo{width:150px;height:184px;object-fit:cover;object-position:center 18%;border-radius:16px;background:var(--soft)}
-    .specialist-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.specialist-name{margin:0 0 4px;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:var(--plum)}
-    .specialist-role{margin:0;color:var(--muted);line-height:1.45}.match-badge{flex:0 0 auto;padding:8px 10px;border-radius:999px;background:var(--ok);color:#46634d;font-size:12px;font-weight:700}
-    .match-reason{margin:15px 0;padding:12px 14px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:#f8f1e9;line-height:1.5}
-    .specialist-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 15px}.specialist-tags span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px}
-    .specialist-meta{display:flex;flex-wrap:wrap;gap:9px 18px;margin:0 0 16px;color:var(--muted);font-size:14px}.specialist-actions{display:flex;gap:10px;align-items:center}.specialist-actions .btn{min-height:48px}.profile-link{color:var(--plum);font-weight:650;text-underline-offset:3px}
-    @media(max-width:980px){
-      .shell{grid-template-columns:1fr .85fr;gap:28px}.hero{padding-left:0}.intro-panel .why{grid-template-columns:1fr 1fr}
-      h1{font-size:clamp(50px,7vw,68px)}
-    }
-    @media(max-width:760px){
-      .wrap{padding:20px 14px 44px}header{min-height:76px}.brand{font-size:25px}.brand-subtitle{font-size:12px}
-      .shell{grid-template-columns:1fr;gap:0}.hero{min-height:auto;padding:48px 8px 40px}.hero-visual{min-height:440px;margin:0 -14px;border-radius:34px}
-      .intro-panel{padding:28px 6px 0;margin-top:28px}.panel{padding:22px}.wrap>.panel{margin-top:24px}
-      h1{font-size:clamp(44px,12vw,58px)}h2{font-size:30px}
-    }
-    @media(max-width:480px){
-      header{align-items:center;gap:12px}.tag{max-width:112px;text-align:right;font-size:12px}.brand{font-size:22px}
-      .hero{padding:40px 4px 32px}.hero-visual{min-height:330px}.panel{border-radius:20px;padding:20px 18px}
-      .intro-panel .why{grid-template-columns:1fr}.lead{font-size:17px}.hero .btn{width:100%;min-width:0;min-height:62px;font-size:19px}
-      .nav{flex-direction:column-reverse}.nav .btn{width:100%}
-      .specialist-card{grid-template-columns:1fr;padding:16px}.specialist-photo{width:100%;height:260px}.specialist-head{display:block}.match-badge{display:inline-block;margin-top:10px}.specialist-actions{align-items:stretch;flex-direction:column}.specialist-actions .btn,.profile-link{text-align:center;width:100%}
-    }
+    .wrap{max-width:1500px;margin:auto;padding:28px clamp(22px,4.5vw,72px) 64px}header{min-height:94px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(69,40,62,.16)}
+    .brand-block{display:grid;gap:2px}.brand{font-family:Georgia,'Times New Roman',serif;font-size:32px;letter-spacing:.055em;color:var(--plum)}.brand-subtitle{font-size:14px;color:var(--accent)}.tag{font-size:14px;color:var(--muted);letter-spacing:.02em}
+    .shell{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:clamp(30px,4vw,70px);align-items:stretch}.hero{display:flex;flex-direction:column;justify-content:center;padding:72px 0 64px 14px;min-height:650px}
+    .hero-visual{min-height:650px;overflow:hidden;border-radius:48% 0 0 44% / 28% 0 0 36%;margin-right:calc(clamp(22px,4.5vw,72px) * -1)}.hero-visual img{width:100%;height:100%;display:block;object-fit:cover;object-position:66% center}.hero-visual.image-fallback{background:radial-gradient(circle at 68% 28%,rgba(255,255,255,.78),transparent 24%),linear-gradient(145deg,#e7dfd2,#cfa98e 55%,#69465d)}
+    .panel{background:rgba(255,250,243,.92);border:1px solid var(--line);border-radius:26px;box-shadow:0 18px 50px rgba(71,48,69,.08);padding:28px}.wrap>.panel{max-width:980px;margin:34px auto 0}
+    .intro-panel{grid-column:1/-1;padding:34px 12px 0;border-top:1px solid rgba(69,40,62,.16)}.intro-panel .why{grid-template-columns:repeat(4,1fr);gap:12px}.intro-panel .notice{margin-top:18px}
+    h1{max-width:780px;font-family:Georgia,'Times New Roman',serif;font-size:clamp(58px,5.3vw,84px);font-weight:400;letter-spacing:-.035em;line-height:.98;margin:0 0 28px;color:var(--plum)}h2{font-family:Georgia,'Times New Roman',serif;font-size:35px;font-weight:400;margin:0 0 15px;color:var(--plum)}h3{font-size:18px;margin:0 0 10px}p{line-height:1.6}.lead{max-width:620px;font-size:20px;line-height:1.5;color:var(--ink);margin:0 0 32px}
+    .btn{min-height:52px;border:0;border-radius:14px;padding:16px 24px;background:var(--plum);color:#fff;font-size:16px;font-weight:650;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}.hero .btn{align-self:flex-start;min-width:300px;min-height:72px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:22px;box-shadow:0 12px 26px rgba(164,78,46,.16)}.btn:hover{transform:translateY(-2px);background:var(--plum2)}.hero .btn:hover{background:linear-gradient(135deg,#b65332,#cd704b)}
+    .btn:focus-visible,.option:focus-visible,.score button:focus-visible,textarea:focus-visible,input:focus-visible,.profile-link:focus-visible{outline:3px solid rgba(90,54,88,.3);outline-offset:2px}.btn.secondary{background:#fff;color:var(--plum);border:1px solid var(--line)}.btn.full{width:100%}.btn:disabled{opacity:.58;cursor:not-allowed;transform:none}
+    .small{font-size:14px;color:#8a7b75;margin-top:28px}.small:before{content:"•";color:var(--accent);font-size:20px;margin-right:12px}.progress{height:8px;background:#eee8ec;border-radius:999px;overflow:hidden;margin-bottom:18px}.bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--plum));width:0;transition:.3s}
+    .bridge{padding:13px 15px;background:var(--sage);border-radius:14px;margin:0 0 15px;color:#425246}.block-label{font-size:12px;font-weight:750;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin:0 0 9px}.question-help{color:var(--muted);font-size:14px;margin:-5px 0 16px}.options{display:grid;gap:10px;margin:18px 0}
+    .option{min-height:48px;padding:14px 16px;border:1px solid var(--line);border-radius:15px;background:#fff;cursor:pointer;text-align:left;font-size:15px;touch-action:manipulation;color:var(--ink)}.option:hover,.option.selected,.option[aria-pressed="true"]{border-color:var(--plum2);background:#faf7fa;box-shadow:inset 4px 0 0 var(--accent)}
+    textarea,input{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;font:inherit;background:#fff;color:var(--ink)}textarea{min-height:96px;resize:vertical}textarea.short{min-height:82px}input[type="checkbox"]{width:auto;min-width:18px;height:18px;margin:2px 0 0;accent-color:var(--plum)}label{line-height:1.5}.consent{display:flex;align-items:flex-start;gap:10px}.nav{display:flex;gap:10px;justify-content:space-between;margin-top:18px}
+    .why{display:grid;gap:8px;margin:12px 0}.why>div{padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}.notice{font-size:13px;color:var(--muted);padding:12px;border:1px dashed #d7cfd5;border-radius:12px}.hidden{display:none!important}
+    .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}.result-section{padding:20px;border:1px solid var(--line);border-radius:18px;background:#fff;min-width:0}.result-section:nth-child(1),.result-section:nth-child(5),.result-section:nth-child(6),.result-section:nth-child(7){grid-column:1/-1}.result-section:nth-child(5){background:var(--ok);border-left:5px solid #7ca586}.result-section:nth-child(6){background:#f7eee9;border-left:5px solid var(--accent)}.result-section h3{color:var(--plum);font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:400}.result-section p{margin:0}
+    .result-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.support-box{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fff}.support-box p{margin:0}
+    .feedback-intro{max-width:680px;color:var(--muted)}.feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}.feedback-field{min-width:0}.feedback-field.full{grid-column:1/-1}.feedback-field>label{display:block;font-weight:650;margin-bottom:10px}.score{display:flex;gap:7px;flex-wrap:wrap}.score button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;touch-action:manipulation;color:var(--ink)}.score button.on{background:var(--plum);color:#fff}.compact{margin:8px 0 0;color:var(--muted);font-size:13px}.status-line{min-height:24px;margin-top:12px;color:var(--muted)}
+    .specialist-kicker{margin:26px 0 10px;color:var(--accent);font-size:13px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.specialist-card{display:grid;grid-template-columns:150px minmax(0,1fr);gap:22px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 32px rgba(71,48,69,.07)}.specialist-photo{width:150px;height:184px;object-fit:cover;object-position:center 18%;border-radius:16px;background:var(--soft)}.specialist-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.specialist-name{margin:0 0 4px;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;color:var(--plum)}.specialist-role{margin:0;color:var(--muted);line-height:1.45}.match-badge{flex:0 0 auto;padding:8px 10px;border-radius:999px;background:var(--ok);color:#46634d;font-size:12px;font-weight:700}.match-reason{margin:15px 0;padding:12px 14px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:#f8f1e9;line-height:1.5}.specialist-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 15px}.specialist-tags span{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px}.specialist-meta{display:flex;flex-wrap:wrap;gap:9px 18px;margin:0 0 16px;color:var(--muted);font-size:14px}.specialist-actions{display:flex;gap:10px;align-items:center}.specialist-actions .btn{min-height:48px}.profile-link{color:var(--plum);font-weight:650;text-underline-offset:3px}
+    @media(max-width:980px){.shell{grid-template-columns:1fr .85fr;gap:28px}.hero{padding-left:0}.intro-panel .why{grid-template-columns:1fr 1fr}h1{font-size:clamp(50px,7vw,68px)}}
+    @media(max-width:760px){.wrap{padding:20px 14px 44px}header{min-height:76px}.brand{font-size:25px}.brand-subtitle{font-size:12px}.shell{grid-template-columns:1fr;gap:0}.hero{min-height:auto;padding:48px 8px 40px}.hero-visual{min-height:440px;margin:0 -14px;border-radius:34px}.intro-panel{padding:28px 6px 0;margin-top:28px}.panel{padding:22px}.wrap>.panel{margin-top:24px}h1{font-size:clamp(44px,12vw,58px)}h2{font-size:30px}.result-grid,.feedback-grid{grid-template-columns:1fr}.result-section,.result-section:nth-child(n),.feedback-field.full{grid-column:1}.result-actions{grid-template-columns:1fr 1fr}}
+    @media(max-width:480px){header{align-items:center;gap:12px}.tag{max-width:112px;text-align:right;font-size:12px}.brand{font-size:22px}.hero{padding:40px 4px 32px}.hero-visual{min-height:330px}.panel{border-radius:20px;padding:20px 18px}.intro-panel .why{grid-template-columns:1fr}.lead{font-size:17px}.hero .btn{width:100%;min-width:0;min-height:62px;font-size:19px}.nav{flex-direction:column-reverse}.nav .btn,.result-actions .btn{width:100%}.result-actions{grid-template-columns:1fr}.specialist-card{grid-template-columns:1fr;padding:16px}.specialist-photo{width:100%;height:260px}.specialist-head{display:block}.match-badge{display:inline-block;margin-top:10px}.specialist-actions{align-items:stretch;flex-direction:column}.specialist-actions .btn,.profile-link{text-align:center;width:100%}}
   </style>
 </head>
 <body>
 <div class="wrap">
-<header>
-  <div class="brand-block"><div class="brand">ПЛАТФОРМА</div><div class="brand-subtitle">AI‑навигатор для женщин 35+</div></div>
-  <div class="tag">бережный путь к ясности</div>
-</header>
-
-<div id="intro" class="shell">
-  <section class="hero">
-    <h1>Ты можешь не знать, что с тобой происходит…</h1>
-    <p class="lead">Ответь на несколько бережных вопросов. Навигатор поможет собрать ситуацию, сформулировать предварительный запрос и увидеть реалистичный следующий шаг.</p>
-    <button class="btn" onclick="start()">Начать диалог</button>
-    <p class="small">7–10 минут · конфиденциально · без диагнозов</p>
+  <header><div class="brand-block"><div class="brand">ПЛАТФОРМА</div><div class="brand-subtitle">AI‑навигатор для женщин 35+</div></div><div class="tag">бережный путь к ясности</div></header>
+  <div id="intro" class="shell">
+    <section class="hero"><h1>Ты можешь не знать, что с тобой происходит…</h1><p class="lead">Ответьте на несколько бережных вопросов. Навигатор поможет увидеть главную точку напряжения, свою зону влияния и один реалистичный следующий шаг.</p><button id="startButton" class="btn" type="button">Начать диалог</button><p class="small">10–15 минут · конфиденциально · без диагнозов</p></section>
+    <div class="hero-visual" aria-hidden="true"><img src="images/hero-platforma.png" alt="" id="heroImage" /></div>
+    <aside class="intro-panel"><h3>Что будет в конце</h3><div class="why"><div>Главная тема именно сейчас</div><div>Границы вашей зоны влияния</div><div>Один выполнимый шаг на 1–3 дня</div><div>Подходящий формат поддержки — если он нужен</div></div><p class="notice">Навигатор не ставит медицинских или психиатрических диагнозов, не принимает решения за вас и не заменяет живого специалиста.</p></aside>
+  </div>
+  <section id="app" class="panel hidden" aria-live="polite"><div class="progress" role="progressbar" aria-label="Прогресс диалога" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar" class="bar"></div></div><p id="blockLabel" class="block-label"></p><div id="bridge" class="bridge hidden"></div><div id="question"></div><div class="nav"><button id="back" class="btn secondary" type="button">Назад</button><button id="next" class="btn" type="button">Продолжить</button></div></section>
+  <section id="result" class="panel hidden"><p class="block-label">Ваш результат</p><h2>Точка начала, которая сейчас выглядит реалистичной</h2><div id="resultBlocks" class="result-grid"></div><p class="notice">Это предварительное отражение без диагноза и категоричных выводов. Вы можете проверить его на своём опыте или обсудить с подходящим специалистом.</p><div class="result-actions"><button id="saveResultButton" class="btn" type="button">Сохранить результат</button><button id="restartButton" class="btn secondary" type="button">Пройти ещё раз</button><button id="supportButton" class="btn secondary" type="button">Посмотреть подходящий формат помощи</button><button id="specialistsButton" class="btn secondary" type="button">Перейти к специалистам</button></div><div id="supportDetails" class="support-box hidden" role="status" aria-live="polite"><p id="supportMore"></p></div>
+    <div id="specialistRecommendation" class="hidden"><div class="specialist-kicker">Подходящий специалист по вашему запросу</div><article class="specialist-card" aria-labelledby="specialist-name"><img class="specialist-photo" src="expert-diana.jpg" alt="Диана Ким, психолог-консультант и трансформационный коуч" loading="lazy"><div><div class="specialist-head"><div><h3 id="specialist-name" class="specialist-name">Диана Ким</h3><p class="specialist-role">Психолог-консультант · трансформационный коуч</p></div><span class="match-badge">Соответствует текущей теме</span></div><p id="specialistMatch" class="match-reason"></p><div class="specialist-tags" aria-label="Темы работы"><span>Внутренняя опора</span><span>Деньги и реализация</span><span>Самоценность</span><span>Жизненные переходы</span></div><div class="specialist-meta"><span>Онлайн</span><span>Русский язык</span><span>Первичный разбор — 60 минут</span><span>15 000 ₸</span></div><div class="specialist-actions"><a id="booking" class="btn" target="_blank" rel="noopener">Обсудить результат</a><a id="profileLink" class="profile-link" href="specialist-diana.html">Подробнее о специалисте</a></div></div></article></div>
   </section>
-  <div class="hero-visual" aria-hidden="true"><img src="images/hero-platforma.png" alt="" onerror="this.hidden=true;this.parentElement.classList.add('image-fallback')" /></div>
-  <aside class="intro-panel">
-    <h3>Что будет в конце</h3>
-    <div class="why">
-      <div>Короткое отражение вашей ситуации</div>
-      <div>Предварительная формулировка запроса</div>
-      <div>Один посильный шаг или практика</div>
-      <div>Возможность перейти к живому разбору</div>
-    </div>
-    <p class="notice">Навигатор не ставит медицинских или психиатрических диагнозов и не заменяет специалиста.</p>
-  </aside>
+  <section id="safety" class="panel hidden"><h2>Сейчас может требоваться срочная поддержка</h2><p>Похоже, сейчас вам может требоваться не только навигация, а срочная поддержка живого специалиста.</p><div class="result-section"><h3>Что важно сделать</h3><p>Если существует непосредственная угроза вашей жизни или безопасности, обратитесь в экстренную службу вашего региона или к человеку, которому доверяете.</p></div><p class="notice">Навигатор не является кризисной службой и не ставит диагноз. Обычный маршрут и практика на этом экране не показываются.</p><button id="safetyRestartButton" class="btn secondary" type="button">Начать заново</button></section>
+  <section id="feedback" class="panel hidden"><p class="block-label">Короткая обратная связь</p><h2>Помогите нам улучшить навигатор</h2><p class="feedback-intro">Ответьте на несколько коротких вопросов. Свободный комментарий останется только на вашем устройстве.</p><div class="feedback-grid"><div class="feedback-field"><label>Насколько результат отражает вашу ситуацию?</label><div id="reflectionScore" class="score"></div></div><div class="feedback-field"><label>Стало ли понятнее, с чего начать?</label><div id="feedbackClarity" class="options"></div></div><div class="feedback-field"><label>Первый шаг кажется реалистичным?</label><div id="feedbackRealistic" class="options"></div></div><div class="feedback-field"><label>Понятно ли, почему предложен этот шаг или специалист?</label><div id="feedbackExplain" class="options"></div></div><div class="feedback-field full"><label for="feedbackText">Что показалось неточным, шаблонным или лишним?</label><textarea id="feedbackText" class="short" maxlength="500" placeholder="Можно ответить коротко"></textarea><p class="compact">Этот текст не отправляется в аналитику и хранится только локально.</p></div><div class="feedback-field full"><label>Хотели бы вы обсудить результат со специалистом?</label><div id="feedbackDiscuss" class="options"></div></div><div class="feedback-field full"><label class="consent"><input type="checkbox" id="consent"><span>Согласна сохранить структурированную обратную связь в рамках тестирования</span></label></div></div><button id="submitFeedbackButton" class="btn full" type="button">Отправить обратную связь</button><div id="sendStatus" class="status-line" role="status" aria-live="polite"></div></section>
+  <section id="finish" class="panel hidden"><h2>Спасибо</h2><p>Структурированная обратная связь сохранена. Результат остаётся доступен выше, и вы можете вернуться к нему без обязательного перехода к специалисту.</p><button id="returnToResultButton" class="btn secondary" type="button">Вернуться к результату</button></section>
 </div>
-
-<section id="app" class="panel hidden">
-  <div class="progress" role="progressbar" aria-label="Прогресс диалога" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar" class="bar"></div></div>
-  <div id="bridge" class="bridge hidden"></div>
-  <div id="question"></div>
-  <div class="nav">
-    <button id="back" class="btn secondary" onclick="goBack()">Назад</button>
-    <button id="next" class="btn" onclick="goNext()">Продолжить</button>
-  </div>
-</section>
-
-<section id="result" class="panel hidden">
-  <h2>Что сейчас складывается</h2>
-  <div id="reflection" class="result-card"></div>
-  <div id="evidence" class="why"></div>
-  <div id="request" class="result-card request"></div>
-  <div id="practice" class="result-card practice"></div>
-  <p class="notice">Это предварительное отражение, а не диагноз. Его задача — помочь яснее начать разговор с собой или со специалистом.</p>
-  <button class="btn full" onclick="showFeedback()">Продолжить и поделиться впечатлением</button>
-</section>
-
-
-<section id="safety" class="panel hidden">
-  <h2>Сейчас важнее получить живую помощь</h2>
-  <p>По вашему ответу похоже, что вы не чувствуете себя в безопасности. Навигатор не будет продолжать обычную интерпретацию ситуации.</p>
-  <div class="result-card request">
-    <h3>Что можно сделать сейчас</h3>
-    <p>Свяжитесь с человеком, которому доверяете, или с местной экстренной службой. Если есть непосредственная угроза жизни или здоровью, обратитесь за срочной помощью по номеру экстренных служб вашего региона.</p>
-  </div>
-  <p class="notice">Этот экран не является медицинской консультацией. Его задача — не оставлять вас один на один с небезопасной ситуацией.</p>
-  <button class="btn secondary" onclick="location.reload()">Начать заново</button>
-</section>
-
-<section id="feedback" class="panel hidden">
-  <h2>Короткая обратная связь</h2>
-  <p>Она поможет сделать навигатор точнее.</p>
-  <label>Насколько яснее стало, с чем работать?</label>
-  <div id="clarity" class="score"></div>
-  <br>
-  <label>Насколько вы доверяете полученной рекомендации?</label>
-  <div id="trust" class="score"></div>
-  <br>
-  <label>Насколько вы узнали себя в результате?</label>
-  <div class="options" id="recognition">
-    <button class="option" data-v="Да, точно">Да, точно</button>
-    <button class="option" data-v="Частично">Частично</button>
-    <button class="option" data-v="Скорее нет">Скорее нет</button>
-  </div>
-  <label>Чего не хватило или что осталось непонятным?</label>
-  <textarea id="comment" placeholder="Можно написать свободно"></textarea>
-  <br><br>
-  <label>Что вы готовы сделать дальше?</label>
-  <div class="options" id="readiness">
-    <button class="option" data-v="Попробую практику">Попробую практику</button>
-    <button class="option" data-v="Подумаю позже">Подумаю позже</button>
-    <button class="option" data-v="Запишусь к специалисту">Запишусь к специалисту</button>
-    <button class="option" data-v="Ничего">Пока ничего</button>
-  </div>
-  <label>Имя и контакт — только если хотите, чтобы с вами связались</label>
-  <input id="name" placeholder="Имя">
-  <br><br>
-  <input id="contact" placeholder="WhatsApp / Telegram / телефон">
-  <br><br>
-  <label class="consent"><input type="checkbox" id="consent"> <span>Согласна на обработку ответов в рамках тестирования</span></label>
-  <br><br>
-  <button class="btn full" onclick="submitFeedback()">Отправить обратную связь</button>
-  <div id="sendStatus" role="status" aria-live="polite"></div>
-</section>
-
-<section id="finish" class="panel hidden">
-  <h2>Спасибо</h2>
-  <p>Ваши ответы сохранены. Можно оставить практику себе или познакомиться со специалистом, которого навигатор рекомендует для следующего шага.</p>
-  <div class="specialist-kicker">Рекомендованный специалист</div>
-  <article class="specialist-card" aria-labelledby="specialist-name">
-    <img class="specialist-photo" src="expert-diana.jpg" alt="Диана Ким, психолог-консультант и трансформационный коуч" loading="lazy">
-    <div>
-      <div class="specialist-head">
-        <div>
-          <h3 id="specialist-name" class="specialist-name">Диана Ким</h3>
-          <p class="specialist-role">Психолог-консультант · трансформационный коуч</p>
-        </div>
-        <span class="match-badge">Подходит вашему маршруту</span>
-      </div>
-      <p id="specialist-match" class="match-reason">Поможет уточнить запрос и выбрать бережный, реалистичный следующий шаг.</p>
-      <div class="specialist-tags" aria-label="Темы работы">
-        <span>Внутренняя опора</span><span>Деньги и реализация</span><span>Самоценность</span><span>Жизненные переходы</span>
-      </div>
-      <div class="specialist-meta"><span>Онлайн</span><span>Русский язык</span><span>Первичный разбор — 60 минут</span><span>15 000 ₸</span></div>
-      <div class="specialist-actions">
-        <a id="booking" class="btn" href="https://wa.me/77774563866?text=%D0%94%D0%B8%D0%B0%D0%BD%D0%B0%2C%20%D0%B7%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5!%20%D0%AF%20%D0%BF%D1%80%D0%BE%D1%88%D0%BB%D0%B0%20AI-%D0%BD%D0%B0%D0%B2%D0%B8%D0%B3%D0%B0%D1%82%D0%BE%D1%80%20%C2%AB%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%C2%BB%20%D0%B8%20%D1%85%D0%BE%D1%87%D1%83%20%D0%BE%D0%B1%D1%81%D1%83%D0%B4%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D0%B9%20%D1%80%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82." target="_blank" rel="noopener" onclick="trackBooking()">Обсудить результат</a>
-        <a class="profile-link" href="specialist-diana.html">Подробнее о специалисте</a>
-      </div>
-    </div>
-  </article>
-  <div class="nav">
-    <button class="btn secondary" onclick="location.reload()">Пройти заново</button>
-  </div>
-</section>
-</div>
-
 <script>
 const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
-function createSessionId(){return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : String(Date.now())}
-function getNavigatorSessionId(){
- const key='platformaSessionId';
- try{
-  const existing=sessionStorage.getItem(key)||localStorage.getItem(key);
-  const value=existing||createSessionId();
-  sessionStorage.setItem(key,value);
-  return value;
- } catch(e){return createSessionId()}
-}
-const sessionId=getNavigatorSessionId();
-const answers={}; let idx=0, history=[], resultData={};
-
-const baseQuestions=[
- {id:'mainSituation',q:'В какой области сейчас сильнее всего ощущается необходимость перемен?',type:'single',
-  o:['Внутреннее состояние','Работа, дело или реализация','Деньги и доход','Отношения или семья','Образ жизни','Всё связано, сложно выделить одно']},
- {id:'mainConcern',q:'Что беспокоит сильнее всего?',type:'single',
-  o:['Не понимаю, чего хочу','Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь','Слишком устала, чтобы разбираться и действовать','Боюсь потерять стабильность','У меня много знаний и попыток, но нет цельного маршрута','Ничего из этого']},
- {id:'duration',q:'Как давно это продолжается?',type:'single',o:['Меньше месяца','1–3 месяца','4–12 месяцев','Больше года','Трудно сказать']},
- {id:'lifeImpact',q:'На что это влияет сильнее всего?',type:'multi',
-  o:['Доход или работа','Энергия и самочувствие','Отношения','Уверенность в себе','Сон, тревога или способность сосредоточиться','Время и упущенные возможности']},
- {id:'triedBefore',q:'Что вы уже пробовали?',type:'multi',
-  o:['Размышляла и составляла планы','Проходила обучение','Обращалась к психологу или коучу','Делала конкретные шаги','Разговаривала с близкими','Пока ничего']},
- {id:'desiredResult',q:'Что сейчас было бы самым полезным результатом?',type:'single',
-  o:['Понять, что со мной происходит','Сформулировать настоящий запрос','Увидеть реалистичный маршрут','Вернуть силы и внутреннюю опору','Принять конкретное решение','Поговорить со специалистом']},
- {id:'currentNeed',q:'Какой формат поддержки сейчас ближе?',type:'single',
-  o:['Сначала попробую сама','Короткий живой разбор результата','Полная первичная сессия','Пока просто хочу ясности']},
- {id:'resourceLevel',q:'Сколько у вас сейчас ресурса для изменений?',type:'single',
-  o:['Почти нет сил','Могу сделать один небольшой шаг','Могу действовать, если будет понятный план','Готова к более глубокой работе']},
- {id:'safetyLevel',q:'Чувствуете ли вы себя сейчас в безопасности?',type:'single',
-  o:['Да','Да, но мне тяжело','Неприятно, но справляюсь','Нет, мне нужна срочная помощь']}
+const SESSION_KEY='platformaSessionId';
+function createSessionId(){return globalThis.crypto?.randomUUID?globalThis.crypto.randomUUID():`navigator_${Date.now()}_${Math.random().toString(36).slice(2)}`}
+function getSessionId(){try{const existing=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY);const value=existing||createSessionId();sessionStorage.setItem(SESSION_KEY,value);return value}catch(e){return createSessionId()}}
+const sessionId=getSessionId();const answers={};const feedbackState={reflection:'',clarity:'',realistic:'',explain:'',discuss:'',text:''};let idx=0;let resultData=null;let feedbackInitialized=false;
+const blockInfo={1:{label:'Блок 1 · Текущая точка',intro:'Давайте сначала разберёмся, что сейчас происходит и где находится главная точка напряжения. Здесь нет правильных или неправильных ответов.'},2:{label:'Блок 2 · Реальный приоритет',intro:'Попробуем найти одну безопасную точку начала. Если выбрать пока не получается, можно так и ответить.'},3:{label:'Блок 3 · Конкретная ситуация',intro:'Вспомним один недавний момент остановки — так будет легче уйти от общих формулировок.'},4:{label:'Блок 4 · Зона влияния',intro:'Отделим то, что зависит от вас, от решений других людей и внешних обстоятельств.'},5:{label:'Блок 5 · Последствия, ресурсы и риски',intro:'Теперь посмотрим на цену бездействия, основные опасения и доступные опоры.'},6:{label:'Блок 6 · Предыдущие решения и помощь',intro:'Важно понять, что уже было испробовано и чего именно не хватило.'},7:{label:'Блок 7 · Предпочтительный формат',intro:'Последний шаг — выбрать комфортный способ двигаться дальше и условия доверия к рекомендации.'}};
+const areaOptions=['Работа или профессия','Доход и финансовое положение','Собственное дело или реализация','Отношения','Семья и жизненные роли','Образ жизни','Внутреннее состояние','Пока сложно определить'];
+const fixedQuestions=[
+{id:'areas',block:1,type:'multi',q:'В какой сфере вы сильнее всего чувствуете необходимость перемен?',options:areaOptions,exclusive:'Пока сложно определить',help:'Можно выбрать несколько вариантов.'},
+{id:'duration',block:1,type:'single',q:'Как давно вы чувствуете, что прежний этап завершается, а новый ещё не сложился?',options:['До 3 месяцев','3–6 месяцев','6–12 месяцев','Больше года','Мне трудно определить']},
+{id:'mainConcern',block:1,type:'text',q:'Что сейчас беспокоит вас сильнее всего?',placeholder:'1–3 коротких предложения',maxLength:320},
+{id:'desiredAction',block:3,type:'text',q:'Вспомните последний случай, когда вы хотели что-то изменить или сделать шаг, но остановились. Что вы хотели сделать?',placeholder:'Опишите коротко сам шаг',maxLength:320},
+{id:'obstacle',block:3,type:'single',q:'Что остановило вас сильнее всего?',options:['Не знала, с чего начать','Боялась ошибиться','Боялась потерять стабильность','Не хватило сил или энергии','Не хватило денег','Не хватило поддержки','Решение зависело от другого человека','Появилось слишком много вариантов','Другое']},
+{id:'stopFeeling',block:3,type:'text',q:'Что вы подумали или почувствовали в этот момент?',placeholder:'Достаточно нескольких слов',maxLength:240},
+{id:'influence',block:4,type:'single',q:'От чего сейчас больше всего зависит изменение ситуации?',options:['В основном от моих действий','От меня и другого человека','В основном от решения другого человека','От финансовых или внешних обстоятельств','Пока не понимаю']},
+{id:'ownAction',block:4,type:'textOrNone',q:'Что вы уже можете сделать самостоятельно, не ожидая изменения других людей или обстоятельств?',placeholder:'Один возможный шаг в вашей зоне влияния',noneLabel:'Пока не вижу такого действия',maxLength:320},
+{id:'losses',block:5,type:'multi',q:'Что вы теряете, пока ситуация не меняется?',options:['Время','Деньги','Энергию','Спокойствие','Уверенность','Возможности','Отношения','Здоровье или самочувствие','Другое'],help:'Можно выбрать несколько вариантов.'},
+{id:'risk',block:5,type:'single',q:'Что больше всего пугает вас в возможных изменениях?',options:['Финансовые потери','Ошибка или неудача','Потеря стабильности','Осуждение окружающих','Конфликт с близкими','Слишком большая нагрузка','Неизвестность','Другое']},
+{id:'supports',block:5,type:'multi',q:'Что уже может стать вашей опорой?',options:['Опыт и знания','Поддержка близких','Финансовый резерв','Свободное время','Профессиональные контакты','Предыдущий успешный опыт','Готовность обратиться за помощью','Пока не вижу опоры','Другое'],exclusive:'Пока не вижу опоры',help:'Можно выбрать несколько вариантов.'},
+{id:'tried',block:6,type:'multi',q:'Что вы уже пробовали, чтобы изменить ситуацию?',options:['Разбиралась самостоятельно','Использовала ChatGPT или другой AI','Обращалась к психологу','Работала с коучем или наставником','Проходила обучение','Обсуждала с близкими','Начинала действовать, но остановилась','Пока ничего не пробовала','Другое'],exclusive:'Пока ничего не пробовала',help:'Можно выбрать несколько вариантов.'},
+{id:'missing',block:6,type:'single',q:'Чего не хватило в предыдущих решениях?',options:['Конкретного плана','Понимания главной проблемы','Поддержки','Контроля и сопровождения','Подходящего специалиста','Уверенности','Времени','Денег','Решения другого человека','Другое']},
+{id:'helpClarity',block:6,type:'single',q:'Понимаете ли вы, какая помощь или какой специалист вам сейчас нужен?',options:['Да, понимаю','Есть предположение, но не уверена','Нет, не понимаю','Возможно, мне пока не нужен специалист']},
+{id:'preferredFormat',block:7,type:'single',q:'Какой формат сейчас был бы для вас наиболее комфортным?',options:['Сначала самостоятельно разобраться с AI','Сначала пройти короткое AI-прояснение, затем решить','Сразу поговорить с живым специалистом','Сочетать AI и сопровождение специалиста','Пока не знаю']},
+{id:'trustFactors',block:7,type:'multi',q:'Что особенно важно для доверия к рекомендации AI?',options:['Понимать, почему сделан такой вывод','Получить конкретные рекомендации без общих слов','Учитывать мою реальную ситуацию','Иметь возможность проверить информацию','Не передавать лишние личные данные','Иметь возможность перейти к живому человеку','Другое'],help:'Можно выбрать несколько вариантов.'}
 ];
-
-function extraQuestions(){
- const out=[];
- if(answers.mainSituation==='Всё связано, сложно выделить одно'){
-   out.push({id:'focusClarifier',q:'Если выбрать одну точку, изменение в которой даст больше всего облегчения, что это?',type:'single',
-    o:['Состояние и энергия','Работа и реализация','Деньги','Отношения','Пока не могу выбрать']});
- }
- if(answers.mainConcern==='Ничего из этого'){
-   out.push({id:'customConcern',q:'Опишите своими словами, что сейчас труднее всего.',type:'text'});
- }
- if(answers.mainConcern==='У меня много знаний и попыток, но нет цельного маршрута'){
-   out.push({id:'routeGap',q:'Чего больше всего не хватает, чтобы знания сложились в движение?',type:'single',
-    o:['Понять главное направление','Выбрать один приоритет','Увидеть, что именно меня останавливает','Оценить риски и ресурсы','Получить поддержку и обратную связь']});
- }
- if(['Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь'].includes(answers.mainConcern)){
-   out.push({id:'blockType',q:'Что чаще происходит перед остановкой?',type:'single',
-    o:['Появляется страх ошибки','Становится слишком много задач','Теряю смысл или мотивацию','Возникает сомнение в себе','Вмешиваются внешние обстоятельства','Пока не понимаю']});
- }
- return out;
+function concreteAreas(){return(answers.areas||[]).filter(value=>value!=='Пока сложно определить')}function priorityOptions(){return[...concreteAreas(),'Пока не могу выбрать']}
+function questions(){const first=fixedQuestions.slice(0,3);const priority=[];if(concreteAreas().length>1)priority.push({id:'priority',block:2,type:'single',q:'Если выбрать только одну тему, изменение которой сильнее всего повлияет на вашу жизнь сейчас, что это будет?',options:priorityOptions()});if(concreteAreas().length)priority.push({id:'readyTopic',block:2,type:'single',q:'С какой темой вы действительно готовы начать работать сейчас, даже если остальные пока останутся без изменений?',options:priorityOptions()});else priority.push({id:'readyTopic',block:2,type:'textOrNone',q:'С какой темой вы действительно готовы начать работать сейчас, даже если остальные пока останутся без изменений?',placeholder:'Можно назвать тему своими словами',noneLabel:'Пока не могу выбрать',maxLength:180});return[...first,...priority,...fixedQuestions.slice(3)]}
+const IS_LOCAL_PREVIEW=['localhost','127.0.0.1'].includes(location.hostname);
+const previewEvents=[];
+globalThis.__platformaPreviewEvents=previewEvents;
+function send(payload){
+  if(IS_LOCAL_PREVIEW){previewEvents.push(payload);return Promise.resolve({preview:true})}
+  return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true})
 }
-function questions(){ return [...baseQuestions.slice(0,2), ...extraQuestions(), ...baseQuestions.slice(2)]; }
-
-function start(){
- document.getElementById('intro').classList.add('hidden');
- document.getElementById('app').classList.remove('hidden');
- render();
-}
-function bridgeText(i){
- const a=answers;
- if(i===1) return 'Спасибо. Уже начинает проявляться основная тема. Уточним, как именно она переживается.';
- if(i===2 && (a.mainSituation==='Всё связано, сложно выделить одно'||a.mainConcern==='Ничего из этого')) return 'Здесь важно не торопиться с выводом. Один уточняющий вопрос поможет не выдать слишком общий результат.';
- if(i>=3) return 'Картина становится яснее. Теперь посмотрим не только на проблему, но и на ресурсы, риски и то, что уже было испробовано.';
- return '';
-}
-function render(){
- const qs=questions(); if(idx>=qs.length){makeResult();return}
- const q=qs[idx]; const b=bridgeText(idx);
- const bridge=document.getElementById('bridge'); bridge.textContent=b; bridge.classList.toggle('hidden',!b);
- const progress=Math.round(idx/qs.length*100);
- document.getElementById('bar').style.width=progress+'%';
- document.querySelector('.progress').setAttribute('aria-valuenow',String(progress));
- const questionEl=document.getElementById('question');
- questionEl.replaceChildren();
- const heading=document.createElement('h2');
- heading.textContent=q.q;
- questionEl.appendChild(heading);
- if(q.type==='text'){
-   const textarea=document.createElement('textarea');
-   textarea.id='txt';
-   textarea.value=answers[q.id]||'';
-   questionEl.appendChild(textarea);
- } else {
-   const options=document.createElement('div');
-   options.className='options';
-   q.o.forEach(option=>{
-     const button=document.createElement('button');
-     button.type='button';
-     button.className='option';
-     const selected=Array.isArray(answers[q.id])?answers[q.id].includes(option):answers[q.id]===option;
-     if(selected) button.classList.add('selected');
-     button.textContent=option;
-     button.addEventListener('click',()=>pick(q.id,option,q.type,button));
-     options.appendChild(button);
-   });
-   questionEl.appendChild(options);
- }
- document.getElementById('back').style.visibility=idx===0?'hidden':'visible';
-}
-function pick(id,val,type,el){
- if(id==='mainSituation' && answers.mainSituation!==val) delete answers.focusClarifier;
- if(id==='mainConcern' && answers.mainConcern!==val){
-   delete answers.customConcern; delete answers.routeGap; delete answers.blockType;
- }
- if(type==='multi'){
-   const arr=answers[id]||[];
-   if(id==='triedBefore'){
-    if(val==='Пока ничего') answers[id]=arr.includes(val)?[]:[val];
-    else {
-     const withoutNone=arr.filter(x=>x!=='Пока ничего');
-     answers[id]=withoutNone.includes(val)?withoutNone.filter(x=>x!==val):[...withoutNone,val];
-    }
-   } else answers[id]=arr.includes(val)?arr.filter(x=>x!==val):[...arr,val];
- } else answers[id]=val;
- render();
-}
-function goNext(){
- const q=questions()[idx];
- if(q.type==='text') answers[q.id]=document.getElementById('txt').value.trim();
- if(!answers[q.id] || (Array.isArray(answers[q.id])&&!answers[q.id].length)){alert('Выберите или напишите ответ');return}
- history.push(idx); idx++; render();
-}
-function goBack(){ if(!history.length)return; idx=history.pop(); render(); }
-
-function infer(){
- const a=answers;
- let route='R4', title='Собрать запрос и выбрать точку приложения усилий';
- if(a.resourceLevel==='Почти нет сил'){route='R2';title='Сначала восстановить опору и снизить перегрузку'}
- else if(a.desiredResult==='Сформулировать настоящий запрос' || a.mainSituation==='Всё связано, сложно выделить одно'){route='R1';title='Прояснить, что сейчас главное'}
- else if(['Я понимаю, чего хочу, но не двигаюсь','Начинаю, но быстро останавливаюсь'].includes(a.mainConcern)){route='R3';title='Найти конкретный механизм остановки'}
- const evidence=[];
- evidence.push(`Основная сфера: ${a.focusClarifier && a.focusClarifier!=='Пока не могу выбрать'?a.focusClarifier:a.mainSituation}.`);
- evidence.push(`Главное переживание: ${a.customConcern||a.mainConcern}.`);
- evidence.push(`Это продолжается: ${a.duration.toLowerCase()}.`);
- if(a.routeGap) evidence.push(`Ключевой дефицит, который вы отметили: ${a.routeGap.toLowerCase()}.`);
- if(a.blockType) evidence.push(`Перед остановкой чаще возникает: ${a.blockType.toLowerCase()}.`);
- let reflection='',request='',practice='';
- if(route==='R2'){
-  reflection=`Сейчас вопрос выглядит не как недостаток знаний или силы воли. Вы отмечаете низкий ресурс, а значит большие решения могут восприниматься как дополнительная нагрузка. Сначала важно вернуть минимальную управляемость и опору.`;
-  request=`Предварительный запрос: «Как снизить внутреннюю перегрузку и вернуть достаточно сил, чтобы спокойно определить следующий шаг?»`;
-  practice=`Практика «Минимум опоры»: назовите 1 вещь, которую сегодня можно не делать; 1 источник напряжения, который можно уменьшить; 1 маленькое действие на 10 минут, после которого станет чуть легче.`;
- }else if(route==='R3'){
-  reflection=`Вы уже видите направление, но движение останавливается. Поэтому проблема, вероятно, не в отсутствии цели. Важно определить конкретный механизм остановки: страх, перегрузку, сомнение, потерю смысла или внешнее ограничение.`;
-  request=`Предварительный запрос: «Что именно останавливает меня перед следующим шагом и как пройти этот момент без привычного отката?»`;
-  practice=`Практика «Момент остановки»: вспомните последний конкретный эпизод. Запишите: какой шаг собирались сделать → какая мысль появилась → что почувствовало тело → что сделали вместо шага. Ищите не “почему я такая”, а точный момент разворота.`;
- }else if(route==='R1'){
-  reflection=`Ситуация затрагивает несколько сфер, и преждевременный совет был бы слишком общим. Сейчас полезнее не выбирать решение, а найти одну точку, изменение в которой даст наибольшее облегчение или ясность.`;
-  request=`Предварительный запрос: «Как определить главную тему моего перехода и отделить её от сопутствующей усталости, тревоги и внешних обстоятельств?»`;
-  practice=`Практика «Три колонки»: 1) что меня больше не устраивает; 2) чего я хочу вместо этого; 3) что в моей зоне влияния в ближайшие семь дней. Выберите одну строку, где появляется больше всего энергии или облегчения.`;
- }else{
-  reflection=`Вы уже предпринимали попытки и располагаете ресурсом для действий. Сейчас важно не собирать ещё больше информации, а определить один приоритет и проверить его небольшим реальным шагом.`;
-  request=`Предварительный запрос: «Какой один приоритет стоит выбрать сейчас и какое действие поможет проверить его без резкого риска?»`;
-  practice=`Практика «Шаг до шага»: сформулируйте не большую цель, а действие, которое даст новую информацию за 7 дней: один разговор, один тест, одна заявка, один расчёт или один пробный формат.`;
- }
- return {route,title,evidence,reflection,request,practice};
-}
-function setResultBlock(id,title,body){
- const el=document.getElementById(id);
- el.replaceChildren();
- const h=document.createElement('h3'); h.textContent=title;
- const p=document.createElement('p'); p.textContent=body;
- el.append(h,p);
-}
-function makeResult(){
- document.getElementById('app').classList.add('hidden');
- if(answers.safetyLevel==='Нет, мне нужна срочная помощь'){
-   document.getElementById('safety').classList.remove('hidden');
-   return;
- }
- resultData=infer();
- document.getElementById('result').classList.remove('hidden');
- setResultBlock('reflection',resultData.title,resultData.reflection);
- const evidence=document.getElementById('evidence');
- evidence.replaceChildren();
- const heading=document.createElement('h3'); heading.textContent='Почему навигатор пришёл к этому выводу';
- evidence.appendChild(heading);
- resultData.evidence.forEach(item=>{const div=document.createElement('div');div.textContent=item;evidence.appendChild(div)});
- setResultBlock('request','Как можно сформулировать запрос',resultData.request);
- setResultBlock('practice','Первый шаг',resultData.practice);
-}
-let clarity='',trust='',recognition='',readiness='';
-function scoreBox(id,setter){
- const el=document.getElementById(id);
- el.replaceChildren();
- [1,2,3,4,5].forEach(n=>{
-   const button=document.createElement('button');
-   button.type='button';
-   button.setAttribute('aria-label',`Оценка ${n} из 5`);
-   button.setAttribute('aria-pressed','false');
-   button.textContent=String(n);
-   button.addEventListener('click',()=>setter(n));
-   el.appendChild(button);
- });
-}
-function setClarity(n){clarity=n;mark('clarity',n)} function setTrust(n){trust=n;mark('trust',n)}
-function mark(id,n){[...document.getElementById(id).children].forEach((b,i)=>{b.classList.toggle('on',i<n);b.setAttribute('aria-pressed',String(i<n))})}
-function setupChoices(id,cb){
- document.querySelectorAll(`#${id} .option`).forEach(b=>b.onclick=()=>{
-   document.querySelectorAll(`#${id} .option`).forEach(x=>x.classList.remove('selected'));
-   b.classList.add('selected'); cb(b.dataset.v);
- });
-}
-function showFeedback(){
- document.getElementById('result').classList.add('hidden');document.getElementById('feedback').classList.remove('hidden');
- scoreBox('clarity',setClarity);scoreBox('trust',setTrust);
- setupChoices('recognition',v=>recognition=v);setupChoices('readiness',v=>readiness=v);
-}
-function setSendStatus(message){
- const st=document.getElementById('sendStatus');
- st.replaceChildren();
- const notice=document.createElement('div');
- notice.className='success';
- notice.textContent=message;
- st.appendChild(notice);
-}
-function specialistMatch(route){
- const matches={
-  R1:'Диана поможет отделить главную тему от сопутствующей усталости и сформулировать запрос, с которым уже можно двигаться дальше.',
-  R2:'Диана работает с внутренней опорой и перегрузкой — поможет бережно вернуть управляемость без давления и резких решений.',
-  R3:'Диана поможет увидеть психологический механизм остановки и подобрать следующий шаг, который не приведёт к привычному откату.',
-  R4:'Диана поможет выбрать один приоритет и перевести общую цель в конкретное, реалистичное действие.'
- };
- return matches[route]||'Диана поможет уточнить запрос и выбрать бережный, реалистичный следующий шаг.';
-}
-async function send(payload){
- await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors'});
-}
-async function submitFeedback(){
- if(!clarity||!trust||!recognition||!readiness){alert('Пожалуйста, заполните оценки и выберите варианты');return}
- if(!document.getElementById('consent').checked){alert('Нужно согласие на обработку ответов');return}
- const submitButton=document.querySelector('#feedback .btn.full');
- submitButton.disabled=true;
- const payload={sessionId,status:'завершено',...answers,route:resultData.route,practice:resultData.practice,
-  clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:false,
-  comment:`Узнала себя: ${recognition} · ${document.getElementById('comment').value.trim()}`,
-  name:document.getElementById('name').value.trim(),contact:document.getElementById('contact').value.trim(),
-  consent:true,source:'AI-навигатор Платформа v2'};
- setSendStatus('Сохраняю ответы…');
- try{
-   await send(payload);
-   document.getElementById('specialist-match').textContent=specialistMatch(resultData.route);
-   document.getElementById('feedback').classList.add('hidden');
-   document.getElementById('finish').classList.remove('hidden');
- } catch(e){
-   setSendStatus('Не удалось отправить ответы. Проверьте интернет и попробуйте ещё раз.');
-   submitButton.disabled=false;
- }
-}
-function trackBooking(){send({sessionId,status:'переход к записи',...answers,route:resultData.route,practice:resultData.practice,
- clarityScore:String(clarity),trustScore:String(trust),bookingReadiness:readiness,bookingClicked:true,
- comment:`Узнала себя: ${recognition} · ${document.getElementById('comment').value.trim()}`,
- name:document.getElementById('name').value.trim(),contact:document.getElementById('contact').value.trim(),
- consent:true,source:'AI-навигатор Платформа v2'})}
+function sendEvent(event,meta={}){send({sessionId,status:event,event,page:'navigator',timestamp:new Date().toISOString(),source:'navigator_interview_update',...meta}).catch(()=>{})}
+function start(){document.getElementById('intro').classList.add('hidden');document.getElementById('app').classList.remove('hidden');sendEvent('navigator_started');render()}
+function render(){const list=questions();if(idx>=list.length){makeResult();return}const q=list[idx],info=blockInfo[q.block],previous=list[idx-1];document.getElementById('blockLabel').textContent=info.label;const bridge=document.getElementById('bridge'),showIntro=!previous||previous.block!==q.block;bridge.textContent=showIntro?info.intro:'';bridge.classList.toggle('hidden',!showIntro);const progress=Math.round(idx/list.length*100);document.getElementById('bar').style.width=`${progress}%`;document.querySelector('.progress').setAttribute('aria-valuenow',String(progress));const root=document.getElementById('question');root.replaceChildren();const title=document.createElement('h2');title.textContent=q.q;root.appendChild(title);if(q.help){const help=document.createElement('p');help.className='question-help';help.textContent=q.help;root.appendChild(help)}if(q.type==='text'||q.type==='textOrNone'){const textarea=document.createElement('textarea');textarea.id='currentTextAnswer';textarea.className='short';textarea.placeholder=q.placeholder||'';textarea.maxLength=q.maxLength||320;textarea.value=answers[q.id]===q.noneLabel?'':(answers[q.id]||'');textarea.addEventListener('input',()=>{answers[q.id]=textarea.value.trimStart()});root.appendChild(textarea);if(q.type==='textOrNone'){const options=document.createElement('div');options.className='options';options.appendChild(optionButton(q,q.noneLabel));root.appendChild(options)}}else{const options=document.createElement('div');options.className='options';q.options.forEach(value=>options.appendChild(optionButton(q,value)));root.appendChild(options)}document.getElementById('back').style.visibility=idx===0?'hidden':'visible';document.getElementById('next').textContent=idx===list.length-1?'Получить результат':'Продолжить'}
+function optionButton(q,value){const button=document.createElement('button');button.type='button';button.className='option';button.textContent=value;const selected=Array.isArray(answers[q.id])?answers[q.id].includes(value):answers[q.id]===value;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));button.addEventListener('click',()=>pick(q,value));return button}
+function pick(q,value){if(q.type==='multi'){const current=answers[q.id]||[];if(q.exclusive&&value===q.exclusive)answers[q.id]=current.includes(value)?[]:[value];else{const clean=q.exclusive?current.filter(item=>item!==q.exclusive):current;answers[q.id]=clean.includes(value)?clean.filter(item=>item!==value):[...clean,value]}}else answers[q.id]=value;if(q.id==='areas'){const allowed=priorityOptions();if(answers.priority&&!allowed.includes(answers.priority))delete answers.priority;if(answers.readyTopic&&!allowed.includes(answers.readyTopic))delete answers.readyTopic}render()}
+function valid(q){const value=answers[q.id];return Array.isArray(value)?value.length>0:typeof value==='string'&&value.trim().length>0}
+function goNext(){const list=questions(),q=list[idx];if(q.type==='text'||q.type==='textOrNone'){const field=document.getElementById('currentTextAnswer');if(field&&field.value.trim())answers[q.id]=field.value.trim()}if(!valid(q)){alert('Выберите вариант или напишите короткий ответ');return}sendEvent('navigator_step_completed',{stepId:q.id,block:q.block,stepNumber:idx+1});idx+=1;render();window.scrollTo({top:0,behavior:'smooth'})}function goBack(){if(idx===0)return;idx-=1;render();window.scrollTo({top:0,behavior:'smooth'})}
+function safetySignal(){const text=['mainConcern','desiredAction','stopFeeling','ownAction'].map(id=>typeof answers[id]==='string'?answers[id]:'').join(' ').toLowerCase();return['не хочу жить','суицид','самоубий','убить себя','самоповреж','угроза жизни','угрожает мне','избивает','насилие','непосредственная угроза','срочная медицинская помощь','потеря сознания'].some(marker=>text.includes(marker))}
+function deriveResult(){const areas=concreteAreas();const chosen=[answers.priority,answers.readyTopic].find(value=>value&&value!=='Пока не могу выбрать');const exhausted=answers.obstacle==='Не хватило сил или энергии'||(answers.losses||[]).includes('Энергию')||answers.risk==='Слишком большая нагрузка';const external=['От меня и другого человека','В основном от решения другого человека'].includes(answers.influence)||answers.obstacle==='Решение зависело от другого человека';const unclear=(!chosen&&areas.length!==1)||answers.influence==='Пока не понимаю'||answers.obstacle==='Появилось слишком много вариантов';const needsStructure=answers.obstacle==='Не знала, с чего начать'||answers.missing==='Конкретного плана'||answers.missing==='Понимания главной проблемы';const businessArea=areas.some(value=>['Работа или профессия','Доход и финансовое положение','Собственное дело или реализация'].includes(value));let route='R4';if(exhausted)route='R2';else if(external)route='R3';else if(unclear)route='R1';let mainTopic='',confident=true;if(exhausted&&businessArea)mainTopic='Восстановление ресурса и рабочей структуры';else if(exhausted)mainTopic='Внутренняя опора и восстановление ресурса';else if(external&&(areas.includes('Отношения')||areas.includes('Семья и жизненные роли')))mainTopic='Собственное решение и границы в отношениях';else if(chosen)mainTopic=chosen;else if(areas.length===1)mainTopic=areas[0];else{mainTopic='Пока нельзя уверенно выделить одну главную тему';confident=false}const barriers=[answers.obstacle,answers.risk].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).slice(0,2);let firstStep='';if(external)firstStep='В течение ближайших двух дней разделите лист на две колонки: «решает другой человек» и «решаю я». Запишите по три пункта и выберите одно действие только из своей колонки — например, подготовить вопрос, обозначить границу или определить собственное решение.';else if(exhausted&&needsStructure)firstStep='На ближайшие 48 часов выберите только три обязательных дела, а одно необязательное сознательно отложите. Рядом запишите самый короткий следующий шаг по главной теме, который займёт не больше 20 минут.';else if(exhausted)firstStep='В течение ближайших суток освободите один 30‑минутный отрезок без новых задач и запишите: что сейчас забирает больше всего сил, что можно временно сократить и какой один шаг остаётся посильным.';else if(answers.risk==='Финансовые потери'&&businessArea)firstStep='За ближайшие 1–3 дня опишите идею в пяти предложениях и покажите её трём потенциальным клиентам без вложений и запуска. Зафиксируйте только их вопросы и готовность продолжить разговор.';else if(unclear)firstStep='В течение ближайших суток составьте таблицу из трёх строк по выбранным сферам: «что напряжено», «какого изменения хочется» и «какой шаг зависит от меня». Пока не выбирайте окончательное решение — сравните строки по ожидаемому облегчению.';else if(needsStructure)firstStep='В течение ближайших двух дней запишите три последовательных действия по выбранной теме и выполните только первое, если оно занимает не больше 30 минут и не требует необратимых решений.';else firstStep='Выберите на ближайшие 1–3 дня один обратимый шаг по главной теме, который займёт не больше часа, и заранее запишите, какую новую информацию он должен дать.';let influenceText='';if(answers.influence==='В основном от моих действий')influenceText='Основная часть следующего шага находится в вашей зоне влияния. Сейчас полезно сосредоточиться на одном обратимом действии, а не на полном решении задачи.';else if(answers.influence==='От меня и другого человека')influenceText='Часть результата зависит от другого человека. В вашей зоне влияния остаются подготовка разговора, собственные границы, вопросы и решение о том, как вы поступите при разных ответах.';else if(answers.influence==='В основном от решения другого человека')influenceText='Итог во многом зависит от решения другого человека. Навигатор не предлагает влиять или давить на него; сейчас стоит сосредоточиться на своих границах, подготовке и собственном выборе.';else if(answers.influence==='От финансовых или внешних обстоятельств')influenceText='Внешние условия нельзя отменить, но можно проверить факты, оценить доступный резерв и подготовить небольшой тест без резкого риска.';else influenceText='Граница влияния пока неясна. Первым полезным действием будет разделить факты, решения других людей и собственные возможные шаги.';const areaLabel=areas.length?areas.join(', '):'несколько пока не определённых сфер';let currentPoint='';if(exhausted)currentPoint=`Похоже, необходимость перемен уже заметна в сфере «${areaLabel}», но ресурс сейчас ограничен. Поэтому скорость и масштаб шага важнее амбициозности.`;else if(areas.length>1&&!confident)currentPoint=`По вашим ответам можно предположить, что одновременно напряжены несколько сфер: ${areaLabel}. Пока безопаснее не делать уверенный вывод, а сначала сравнить их.`;else if(external)currentPoint=`Сейчас наиболее заметной выглядит тема «${mainTopic}». При этом часть результата находится вне вашего прямого контроля.`;else currentPoint=`Похоже, вы уже видите необходимость изменений в теме «${mainTopic}», но между намерением и действием остаётся конкретный барьер.`;const why=`Этот шаг выбран потому, что главным препятствием вы отметили «${(answers.obstacle||'пока не определено').toLowerCase()}», а главным риском — «${(answers.risk||'пока не определено').toLowerCase()}». Он остаётся в вашей зоне влияния, не требует резкого решения и должен дать новую информацию в течение 1–3 дней.`;let support='',specialistType='',recommendDiana=false;const wantsHuman=['Сразу поговорить с живым специалистом','Сочетать AI и сопровождение специалиста'].includes(answers.preferredFormat);if(answers.helpClarity==='Возможно, мне пока не нужен специалист'&&!wantsHuman){support='Пока можно продолжить самостоятельно: выполнить первый шаг и вернуться к результату после появления новой информации.';specialistType='Самостоятельный формат с AI'}else if(exhausted){support='Может подойти психологическая поддержка или разовая консультация, чтобы восстановить опору и не усиливать перегрузку.';specialistType='Психологическая поддержка';recommendDiana=wantsHuman||(answers.supports||[]).includes('Готовность обратиться за помощью')}else if(external){support='Полезна разовая психологическая консультация для прояснения собственных границ и решения без попытки управлять другим человеком.';specialistType='Разовая консультация для прояснения';recommendDiana=wantsHuman}else if(businessArea&&needsStructure){support='Может подойти коуч, наставник по реализации или профильный бизнес‑специалист, который поможет превратить цель в проверяемый план.';specialistType='Коуч, наставник или бизнес‑специалист'}else if(unclear){support='Сейчас полезно короткое AI‑прояснение или разовая консультация для выбора приоритета. Данных для уверенной рекомендации конкретного специалиста пока недостаточно.';specialistType='Короткое прояснение'}else{support='Подойдёт связка самостоятельного шага и короткой консультации, если после проверки останется неясность.';specialistType='AI и разовая консультация';recommendDiana=wantsHuman&&areas.some(value=>['Внутреннее состояние','Отношения','Семья и жизненные роли','Образ жизни'].includes(value))}const dianaReason=route==='R2'?'Диана работает с внутренней опорой и перегрузкой — это соответствует вашему текущему ограничению по ресурсу.':'Диана может помочь отделить собственное решение и границы от того, что зависит от другого человека.';return{route,mainTopic,confident,currentPoint,influenceText,barriers,firstStep,why,support,specialistType,recommendDiana,dianaReason,analyticsPriority:confident&&areas.includes(mainTopic)?mainTopic:(chosen&&areaOptions.includes(chosen)?chosen:'Приоритет требует уточнения')}}
+function resultSection(title,text){const section=document.createElement('section');section.className='result-section';const heading=document.createElement('h3');heading.textContent=title;const paragraph=document.createElement('p');paragraph.textContent=text;section.append(heading,paragraph);return section}
+function renderResult(data){const root=document.getElementById('resultBlocks');root.replaceChildren();root.appendChild(resultSection('1. Ваша текущая точка',data.currentPoint));root.appendChild(resultSection('2. Главная тема сейчас',data.confident?data.mainTopic:'Пока нельзя уверенно выделить одну главную тему. Возможно, первым шагом будет не действие, а дополнительное прояснение ситуации.'));root.appendChild(resultSection('3. Что находится в вашей зоне влияния',data.influenceText));root.appendChild(resultSection('4. Что может мешать',data.barriers.length?data.barriers.join(' · '):'Пока нельзя уверенно выделить один барьер.'));root.appendChild(resultSection('5. Ваш первый реалистичный шаг',data.firstStep));root.appendChild(resultSection('6. Почему предложен именно этот шаг',data.why));root.appendChild(resultSection('7. Какой формат поддержки может подойти',data.support))}
+function makeResult(){document.getElementById('app').classList.add('hidden');if(safetySignal()){document.getElementById('safety').classList.remove('hidden');sendEvent('navigator_completed',{outcome:'safety'});return}resultData=deriveResult();if(!resultData.confident){resultData.support='Сейчас полезно короткое AI‑прояснение или разовая консультация для выбора приоритета. Данных для уверенной рекомендации конкретного специалиста пока недостаточно.';resultData.specialistType='Короткое прояснение';resultData.recommendDiana=false}renderResult(resultData);document.getElementById('result').classList.remove('hidden');document.getElementById('feedback').classList.remove('hidden');document.getElementById('specialistRecommendation').classList.add('hidden');document.getElementById('supportDetails').classList.add('hidden');prepareSpecialist(resultData);setupFeedback();sendEvent('navigator_completed',{route:resultData.route,supportType:resultData.specialistType});sendEvent('feedback_started',{route:resultData.route});document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'})}
+function prepareSpecialist(data){document.getElementById('specialistMatch').textContent=data.dianaReason;const message=`Здравствуйте, Диана! Я прошла AI-навигатор на платформе. Моя основная тема — ${data.mainTopic}. Мне рекомендован формат ${data.specialistType}. Хочу уточнить подробности`;document.getElementById('booking').href=`https://wa.me/77774563866?text=${encodeURIComponent(message)}`}
+function showSupport(showSpecialist=false){sendEvent(showSpecialist?'specialists_clicked':'support_format_clicked',{route:resultData.route,supportType:resultData.specialistType});const box=document.getElementById('supportDetails');box.classList.remove('hidden');const specialist=document.getElementById('specialistRecommendation');if(resultData.recommendDiana){document.getElementById('supportMore').textContent='По вашим ответам профиль Дианы может соответствовать текущей теме. Причина рекомендации указана ниже.';specialist.classList.remove('hidden')}else{document.getElementById('supportMore').textContent=showSpecialist?'Навигатор не выбрал конкретного специалиста: сейчас важнее сначала проверить предложенный шаг или уточнить нужный тип помощи.':'Подходящий формат уже указан в результате. Конкретный специалист не предлагается автоматически без достаточных оснований.';specialist.classList.add('hidden')}box.scrollIntoView({behavior:'smooth',block:'center'})}
+function trackBooking(){send({sessionId,status:'переход к записи',bookingClicked:true,route:resultData.route,source:'navigator_result_card',event:'profile_whatsapp_clicked',specialistId:'diana_kim',page:'navigator_result',timestamp:new Date().toISOString()}).catch(()=>{})}
+function saveResult(){const lines=['ПЛАТФОРМА — результат AI-навигатора','',`Ваша текущая точка: ${resultData.currentPoint}`,`Главная тема: ${resultData.mainTopic}`,`Зона влияния: ${resultData.influenceText}`,`Что может мешать: ${resultData.barriers.join(' · ')}`,`Первый шаг: ${resultData.firstStep}`,`Почему этот шаг: ${resultData.why}`,`Формат поддержки: ${resultData.support}`];const blob=new Blob([lines.join('\n\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='platforma-result.txt';link.click();URL.revokeObjectURL(url);sendEvent('navigator_result_saved',{route:resultData.route})}function restartNavigator(){sendEvent('navigator_restart_clicked',{from:'result'});setTimeout(()=>location.reload(),80)}
+function setupFeedback(){if(feedbackInitialized)return;feedbackInitialized=true;scoreBox('reflectionScore',value=>feedbackState.reflection=String(value));choiceBox('feedbackClarity',['Да','Частично','Нет'],value=>feedbackState.clarity=value);choiceBox('feedbackRealistic',['Да','Частично','Нет'],value=>feedbackState.realistic=value);choiceBox('feedbackExplain',['Да','Частично','Нет'],value=>feedbackState.explain=value);choiceBox('feedbackDiscuss',['Да','Возможно позже','Нет'],value=>feedbackState.discuss=value);document.getElementById('feedbackText').addEventListener('input',event=>feedbackState.text=event.target.value)}
+function scoreBox(id,setter){const root=document.getElementById(id);[1,2,3,4,5].forEach(value=>{const button=document.createElement('button');button.type='button';button.textContent=String(value);button.setAttribute('aria-label',`Оценка ${value} из 5`);button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{setter(value);[...root.children].forEach((item,index)=>{const on=index<value;item.classList.toggle('on',on);item.setAttribute('aria-pressed',String(on))})});root.appendChild(button)})}function choiceBox(id,values,setter){const root=document.getElementById(id);values.forEach(value=>{const button=document.createElement('button');button.type='button';button.className='option';button.textContent=value;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{setter(value);[...root.children].forEach(item=>{const on=item===button;item.classList.toggle('selected',on);item.setAttribute('aria-pressed',String(on))})});root.appendChild(button)})}
+function feedbackScore(value){return value==='Да'?'5':value==='Частично'?'3':'1'}function structuredPayload(){return{sessionId,status:'завершено',mainSituation:(answers.areas||[]).join(' · '),mainConcern:answers.obstacle||'',duration:answers.duration||'',lifeImpact:(answers.losses||[]).join(' · '),triedBefore:(answers.tried||[]).join(' · '),desiredResult:resultData.analyticsPriority,currentNeed:answers.preferredFormat||'',resourceLevel:(answers.supports||[]).join(' · '),safetyLevel:'Обычный маршрут',route:resultData.route,practice:resultData.firstStep,clarityScore:feedbackState.reflection,trustScore:feedbackScore(feedbackState.explain),bookingReadiness:feedbackState.discuss,bookingClicked:false,comment:`Понятнее: ${feedbackState.clarity} · Реалистичность: ${feedbackState.realistic} · Объяснение: ${feedbackState.explain}`,name:'',contact:'',consent:true,source:'AI-навигатор Платформа · interview update'}}
+async function submitFeedback(){if(!feedbackState.reflection||!feedbackState.clarity||!feedbackState.realistic||!feedbackState.explain||!feedbackState.discuss){alert('Пожалуйста, ответьте на все короткие вопросы');return}if(!document.getElementById('consent').checked){alert('Нужно согласие на сохранение структурированной обратной связи');return}try{sessionStorage.setItem('platformaFeedbackDraft',JSON.stringify({text:feedbackState.text,savedAt:new Date().toISOString()}))}catch(e){}const button=document.getElementById('submitFeedbackButton');button.disabled=true;document.getElementById('sendStatus').textContent='Сохраняю структурированные ответы…';try{await send(structuredPayload());sendEvent('feedback_completed',{route:resultData.route,discuss:feedbackState.discuss});document.getElementById('feedback').classList.add('hidden');document.getElementById('finish').classList.remove('hidden');document.getElementById('finish').scrollIntoView({behavior:'smooth',block:'center'})}catch(e){document.getElementById('sendStatus').textContent='Не удалось сохранить ответы. Проверьте интернет и попробуйте ещё раз.';button.disabled=false}}
+document.getElementById('startButton').addEventListener('click',start);document.getElementById('back').addEventListener('click',goBack);document.getElementById('next').addEventListener('click',goNext);document.getElementById('saveResultButton').addEventListener('click',saveResult);document.getElementById('restartButton').addEventListener('click',restartNavigator);document.getElementById('supportButton').addEventListener('click',()=>showSupport(false));document.getElementById('specialistsButton').addEventListener('click',()=>showSupport(true));document.getElementById('booking').addEventListener('click',trackBooking);document.getElementById('profileLink').addEventListener('click',()=>sendEvent('specialists_clicked',{source:'diana_profile',route:resultData.route}));document.getElementById('submitFeedbackButton').addEventListener('click',submitFeedback);document.getElementById('returnToResultButton').addEventListener('click',()=>document.getElementById('result').scrollIntoView({behavior:'smooth'}));document.getElementById('safetyRestartButton').addEventListener('click',()=>{sendEvent('navigator_restart_clicked',{from:'safety'});setTimeout(()=>location.reload(),80)});document.getElementById('heroImage').addEventListener('error',event=>{event.currentTarget.hidden=true;event.currentTarget.parentElement.classList.add('image-fallback')});
 </script>
-</body></html>
+</body>
+</html>
