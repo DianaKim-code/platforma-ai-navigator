@@ -31,6 +31,7 @@ const feedbackState = {
   clarity: '',
   realistic: '',
   explain: '',
+  trust: '',
   discuss: '',
   text: '',
 };
@@ -38,7 +39,6 @@ const feedbackState = {
 let idx = 0;
 let resultData = null;
 let feedbackInitialized = false;
-let feedbackStarted = false;
 
 const blockInfo = {
   1: {
@@ -302,11 +302,6 @@ function goNext() {
     alert('Выберите вариант или напишите короткий ответ');
     return;
   }
-  sendEvent('navigator_step_completed', {
-    stepId: question.id,
-    block: question.block,
-    stepNumber: idx + 1,
-  });
   idx += 1;
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -344,6 +339,89 @@ function selectedTopic(value) {
   return value && value !== NONE_TOPIC ? value : '';
 }
 
+function deriveInsightPattern(currentAnswers, context) {
+  const tried = (currentAnswers.tried || []).filter((value) => value !== 'Пока ничего не пробовала');
+  const supports = currentAnswers.supports || [];
+  const losses = currentAnswers.losses || [];
+  const hasEstablishedResource = supports.some((value) => [
+    'Опыт и знания',
+    'Предыдущий успешный опыт',
+  ].includes(value));
+  const hasVariedAttempts = tried.length >= 2;
+
+  if (currentAnswers.obstacle === 'Появилось слишком много вариантов'
+    && hasEstablishedResource
+    && hasVariedAttempts) {
+    return {
+      code: 'choice_criteria',
+      conclusion: 'По сочетанию ответов можно предположить, что сложность сейчас не в недостатке идей, знаний или опыта. Возможный рабочий узел — отсутствие понятного критерия, по которому можно выбрать одно направление и временно отказаться от остальных. Поиск новых вариантов в такой ситуации, скорее всего, будет усиливать неопределённость, а не помогать двигаться.',
+      basis: 'Одновременно присутствуют накопленные ресурсы, несколько уже испробованных способов и остановка на этапе выбора между вариантами.',
+      confidenceLimit: 'Это рабочая гипотеза по текущим ответам. Её полезно проверить на одном конкретном выборе, а не принимать как окончательное объяснение.',
+    };
+  }
+
+  const usedReflectionSupport = tried.some((value) => [
+    'Разбиралась самостоятельно',
+    'Использовала ChatGPT или другой AI',
+    'Обращалась к психологу',
+    'Работала с коучем или наставником',
+  ].includes(value));
+  const lacksActionBridge = ['Конкретного плана', 'Уверенности', 'Понимания главной проблемы'].includes(currentAnswers.missing);
+  if (tried.includes('Проходила обучение')
+    && usedReflectionSupport
+    && tried.includes('Начинала действовать, но остановилась')
+    && lacksActionBridge) {
+    return {
+      code: 'knowledge_action_gap',
+      conclusion: 'По сочетанию ответов похоже, что добавление нового знания само по себе может не изменить ситуацию. Возможный рабочий узел находится между пониманием и устойчивым действием, поэтому следующий шаг полезнее строить как небольшую проверку на практике, а не как ещё один объём информации.',
+      basis: 'Уже сочетались обучение, способы осмысления ситуации и попытка действовать, но движение не стало устойчивым.',
+      confidenceLimit: 'Ответы не показывают все причины остановки. Вывод стоит проверить по одному небольшому действию и фактической реакции на него.',
+    };
+  }
+
+  const relationshipTopic = context.areas.some((value) => ['Отношения', 'Семья и жизненные роли'].includes(value))
+    || ['Отношения', 'Семья и жизненные роли'].includes(context.workTopic);
+  if (context.external && relationshipTopic) {
+    return {
+      code: 'external_boundary',
+      conclusion: 'По сочетанию ответов рабочий узел, вероятно, находится не в поиске способа убедить другого человека. Полезнее определить собственное решение, границы и действия для разных вариантов его ответа.',
+      basis: 'Тема связана с отношениями или семейной ролью, а изменение ситуации зависит не только от ваших действий.',
+      confidenceLimit: 'Навигатор не знает позиции другого человека и не оценивает отношения целиком. Вывод касается только вашей доступной зоны влияния.',
+    };
+  }
+
+  if (currentAnswers.obstacle === 'Не хватило сил или энергии'
+    && losses.includes('Энергию')
+    && currentAnswers.risk === 'Слишком большая нагрузка') {
+    return {
+      code: 'limited_capacity',
+      conclusion: 'По сочетанию ответов большой план сейчас может усиливать остановку. Возможный рабочий узел — несоответствие масштаба задачи доступному ресурсу, поэтому сначала важно уменьшить действие и проверить, какой уровень нагрузки действительно реалистичен.',
+      basis: 'Остановка, цена бездействия и основной риск одновременно связаны с энергией и нагрузкой.',
+      confidenceLimit: 'Это не оценка состояния здоровья и не диагноз. Если истощение выраженное или длительное, одной навигации может быть недостаточно.',
+    };
+  }
+
+  const hasDesiredAction = typeof currentAnswers.desiredAction === 'string'
+    && currentAnswers.desiredAction.trim().length > 0;
+  if (context.workIsBusiness
+    && currentAnswers.risk === 'Финансовые потери'
+    && hasDesiredAction) {
+    return {
+      code: 'financial_reversible_test',
+      conclusion: 'По сочетанию ответов сейчас полезнее не принимать окончательное финансовое решение, а превратить намерение в обратимый тест без существенных вложений. Такой тест даст факты для выбора и ограничит цену возможной ошибки.',
+      basis: 'Запрос связан с работой, доходом или реализацией, при этом желаемое действие уже обозначено, а главным риском воспринимаются финансовые потери.',
+      confidenceLimit: 'Навигатор не оценивает финансовую модель и не заменяет профильную консультацию. Размер безопасного теста нужно определять по вашим реальным ограничениям.',
+    };
+  }
+
+  return {
+    code: 'insufficient_data',
+    conclusion: 'По текущим ответам пока нельзя уверенно выделить один рабочий узел. Полезнее сначала уточнить конкретный момент, в котором действие останавливается.',
+    basis: 'Выбранное сочетание не даёт достаточных оснований для одного содержательного вывода без искусственно уверенной интерпретации.',
+    confidenceLimit: 'Это ограничение результата, а не оценка вашей ситуации. Дополнительный конкретный пример может изменить вывод.',
+  };
+}
+
 function deriveResult() {
   const areas = concreteAreas();
   const explicitReadyTopic = selectedTopic(answers.readyTopic);
@@ -366,6 +444,13 @@ function deriveResult() {
     || answers.missing === 'Понимания главной проблемы';
   const workIsBusiness = ['Работа или профессия', 'Доход и финансовое положение', 'Собственное дело или реализация'].includes(workTopic);
   const workFitsDiana = ['Внутреннее состояние', 'Отношения', 'Семья и жизненные роли', 'Образ жизни'].includes(workTopic);
+  const insight = deriveInsightPattern(answers, {
+    areas,
+    workTopic,
+    external,
+    exhausted,
+    workIsBusiness,
+  });
 
   let route = 'R4';
   if (unclear) route = 'R1';
@@ -399,7 +484,11 @@ function deriveResult() {
     .slice(0, 2);
 
   let firstStep = '';
-  if (unclear) {
+  if (insight.code === 'choice_criteria') {
+    firstStep = 'Выберите не направление, а три критерия выбора: ожидаемый эффект, обратимость и возможность получить первые факты за семь дней. Сравните по ним не больше трёх вариантов и временно протестируйте один с наибольшим совпадением — без окончательного отказа от остальных.';
+  } else if (insight.code === 'knowledge_action_gap') {
+    firstStep = 'На ближайшие 48 часов не добавляйте новое обучение. Выберите одно действие длительностью до 30 минут, заранее запишите наблюдаемый результат и после выполнения зафиксируйте только факты: что удалось начать, где возникла остановка и чего не хватило.';
+  } else if (unclear) {
     firstStep = 'В течение ближайших суток сравните возможные точки начала: для каждой запишите, какого небольшого изменения вы хотите, что зависит от вас и какой шаг можно безопасно проверить за 20 минут. Выбирать окончательное решение пока не нужно.';
   } else if (external) {
     firstStep = 'В течение ближайших двух дней разделите лист на две колонки: «решает другой человек» и «решаю я». Запишите по три пункта и выберите одно действие только из своей колонки — например, подготовить вопрос, обозначить границу или определить собственное решение.';
@@ -437,7 +526,13 @@ function deriveResult() {
 
   const areaLabel = areas.length ? areas.join(', ') : 'несколько пока не определённых сфер';
   let currentPoint = '';
-  if (readyUndecided) {
+  if (insight.code === 'choice_criteria') {
+    currentPoint = 'Возможности и опоры для действия уже есть. Остановка, похоже, происходит не на этапе поиска новых направлений, а на этапе выбора, какому из них временно дать приоритет.';
+  } else if (insight.code === 'knowledge_action_gap') {
+    currentPoint = 'Понимание ситуации уже подкреплялось разными способами, но переход к устойчивому действию пока не сложился. Следующая проверка должна происходить в действии, а не только в размышлении.';
+  } else if (insight.code === 'financial_reversible_test') {
+    currentPoint = 'Намерение действовать уже сформулировано, но цена финансовой ошибки воспринимается как существенная. Поэтому сначала нужна проверка, которая даст факты без крупного обязательства.';
+  } else if (readyUndecided) {
     currentPoint = `Напряжение уже заметно в сфере «${areaLabel}», но это ещё не означает готовность начать именно с неё. Сфера напряжения уже заметна, но точка начала пока не определена.`;
   } else if (topicsDiffer) {
     currentPoint = topicSummary;
@@ -451,7 +546,9 @@ function deriveResult() {
     currentPoint = `Похоже, вы готовы начать с темы «${workTopic}», но между намерением и действием остаётся конкретный барьер.`;
   }
 
-  let why = `Этот шаг построен вокруг темы «${workTopic || 'точка начала пока не определена'}» и учитывает препятствие «${(answers.obstacle || 'пока не определено').toLowerCase()}». Он не требует резкого решения и должен дать новую информацию в течение 1–3 дней.`;
+  let why = insight.code === 'insufficient_data'
+    ? 'Сейчас важнее получить один конкретный пример остановки, чем делать широкий вывод по недостаточным данным. Такой пример позволит отделить факты от предположений и выбрать следующий шаг точнее.'
+    : 'Предложенный шаг проверяет аналитический вывод на практике: он ограничивает риск, создаёт наблюдаемый результат и помогает получить новую информацию без необратимого решения.';
   if (topicsDiffer) {
     why = `${topicSummary} ${why}`;
   }
@@ -510,6 +607,7 @@ function deriveResult() {
     specialistType,
     recommendDiana,
     dianaReason,
+    insight,
     analyticsPriority: workTopic || 'Приоритет требует уточнения',
   };
 }
@@ -525,11 +623,35 @@ function resultSection(title, text) {
   return section;
 }
 
+function normalizedInsight(insight) {
+  return insight || {
+    code: 'insufficient_data',
+    conclusion: 'По текущим ответам пока нельзя уверенно выделить один рабочий узел. Полезнее сначала уточнить конкретный момент, в котором действие останавливается.',
+    basis: 'Сохранённый результат был сформирован предыдущей версией навигатора и не содержит нового аналитического слоя.',
+    confidenceLimit: 'Для обновлённого вывода можно пройти навигатор ещё раз.',
+  };
+}
+
+function insightSection(insight) {
+  const value = normalizedInsight(insight);
+  const section = resultSection('Что показывает сочетание ваших ответов', value.conclusion);
+  section.classList.add('insight-section');
+  const basis = document.createElement('p');
+  basis.className = 'insight-meta';
+  basis.textContent = `Основание вывода: ${value.basis}`;
+  const confidence = document.createElement('p');
+  confidence.className = 'insight-meta';
+  confidence.textContent = `Ограничение уверенности: ${value.confidenceLimit}`;
+  section.append(basis, confidence);
+  return section;
+}
+
 function renderResult(data) {
   const root = document.getElementById('resultBlocks');
   root.replaceChildren();
   root.appendChild(resultSection('1. Ваша текущая точка', data.currentPoint));
   root.appendChild(resultSection('2. Наиболее важная тема и точка начала', data.topicSummary));
+  root.appendChild(insightSection(data.insight));
   root.appendChild(resultSection('3. Что находится в вашей зоне влияния', data.influenceText));
   root.appendChild(resultSection('4. Что может мешать', data.barriers.length ? data.barriers.join(' · ') : 'Пока нельзя уверенно выделить один барьер.'));
   root.appendChild(resultSection('5. Ваш первый реалистичный шаг', data.firstStep));
@@ -572,7 +694,19 @@ function makeResult() {
   document.getElementById('app').classList.add('hidden');
   if (safetySignal()) {
     document.getElementById('safety').classList.remove('hidden');
-    sendEvent('navigator_completed', { outcome: 'safety' });
+    send({
+      sessionId,
+      status: 'безопасный выход',
+      event: 'safety_exit',
+      safetyLevel: 'Требуется срочная помощь',
+      route: 'safety',
+      bookingClicked: false,
+      comment: '',
+      name: '',
+      contact: '',
+      consent: false,
+      source: 'AI-навигатор Платформа · safety',
+    }).catch(() => {});
     return;
   }
 
@@ -586,10 +720,6 @@ function makeResult() {
   document.getElementById('supportDetails').classList.add('hidden');
   prepareSpecialist(resultData);
   setupFeedback();
-  sendEvent('navigator_completed', {
-    route: resultData.route,
-    supportType: resultData.specialistType,
-  });
   document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -647,11 +777,15 @@ function trackBooking() {
 }
 
 function saveResult() {
+  const insight = normalizedInsight(resultData.insight);
   const lines = [
     'ПЛАТФОРМА — результат AI-навигатора',
     '',
     `Ваша текущая точка: ${resultData.currentPoint}`,
     `Темы: ${resultData.topicSummary}`,
+    `Что показывает сочетание ответов: ${insight.conclusion}`,
+    `Основание вывода: ${insight.basis}`,
+    `Ограничение уверенности: ${insight.confidenceLimit}`,
     `Зона влияния: ${resultData.influenceText}`,
     `Что может мешать: ${resultData.barriers.join(' · ')}`,
     `Первый шаг: ${resultData.firstStep}`,
@@ -669,47 +803,36 @@ function saveResult() {
 }
 
 function restartNavigator() {
-  sendEvent('navigator_restart_clicked', { from: 'result' });
   try {
     sessionStorage.removeItem(NAV_STATE_KEY);
   } catch (error) {}
   setTimeout(() => location.reload(), 80);
 }
 
-function markFeedbackStarted() {
-  if (feedbackStarted) return;
-  feedbackStarted = true;
-  sendEvent('feedback_started', { route: resultData.route });
-}
-
 function setupFeedback() {
   if (feedbackInitialized) return;
   feedbackInitialized = true;
   scoreBox('reflectionScore', (value) => {
-    markFeedbackStarted();
     feedbackState.reflection = String(value);
   });
-  choiceBox('feedbackClarity', ['Да', 'Частично', 'Нет'], (value) => {
-    markFeedbackStarted();
-    feedbackState.clarity = value;
+  scoreBox('clarityScore', (value) => {
+    feedbackState.clarity = String(value);
   });
-  choiceBox('feedbackRealistic', ['Да', 'Частично', 'Нет'], (value) => {
-    markFeedbackStarted();
-    feedbackState.realistic = value;
+  scoreBox('realisticScore', (value) => {
+    feedbackState.realistic = String(value);
   });
-  choiceBox('feedbackExplain', ['Да', 'Частично', 'Нет'], (value) => {
-    markFeedbackStarted();
-    feedbackState.explain = value;
+  scoreBox('explanationScore', (value) => {
+    feedbackState.explain = String(value);
+  });
+  scoreBox('trustScore', (value) => {
+    feedbackState.trust = String(value);
   });
   choiceBox('feedbackDiscuss', ['Да', 'Возможно позже', 'Нет'], (value) => {
-    markFeedbackStarted();
     feedbackState.discuss = value;
   });
   document.getElementById('feedbackText').addEventListener('input', (event) => {
-    markFeedbackStarted();
     feedbackState.text = event.target.value.slice(0, 500);
   });
-  document.getElementById('consent').addEventListener('change', markFeedbackStarted);
 }
 
 function scoreBox(id, setter) {
@@ -752,14 +875,8 @@ function choiceBox(id, values, setter) {
   });
 }
 
-function feedbackScore(value) {
-  if (value === 'Да') return '5';
-  if (value === 'Частично') return '3';
-  return '1';
-}
-
 function structuredPayload() {
-  const structuredSummary = `Понятнее: ${feedbackState.clarity} · Реалистичность: ${feedbackState.realistic} · Объяснение: ${feedbackState.explain}`;
+  const structuredSummary = `Отражение: ${feedbackState.reflection} · Реалистичность шага: ${feedbackState.realistic} · Понятность объяснения: ${feedbackState.explain}`;
   const feedbackComment = feedbackState.text.trim();
   return {
     sessionId,
@@ -775,8 +892,8 @@ function structuredPayload() {
     safetyLevel: 'Обычный маршрут',
     route: resultData.route,
     practice: resultData.firstStep,
-    clarityScore: feedbackState.reflection,
-    trustScore: feedbackScore(feedbackState.explain),
+    clarityScore: feedbackState.clarity,
+    trustScore: feedbackState.trust,
     bookingReadiness: feedbackState.discuss,
     bookingClicked: false,
     comment: feedbackComment
@@ -794,6 +911,7 @@ async function submitFeedback() {
     || !feedbackState.clarity
     || !feedbackState.realistic
     || !feedbackState.explain
+    || !feedbackState.trust
     || !feedbackState.discuss) {
     alert('Пожалуйста, ответьте на все короткие вопросы');
     return;
@@ -808,10 +926,6 @@ async function submitFeedback() {
   document.getElementById('sendStatus').textContent = 'Сохраняю обратную связь…';
   try {
     await send(structuredPayload());
-    await sendEvent('feedback_completed', {
-      route: resultData.route,
-      discuss: feedbackState.discuss,
-    });
     document.getElementById('finishText').textContent = 'Обратная связь сохранена. Результат остаётся доступен выше.';
     document.getElementById('feedback').classList.add('hidden');
     document.getElementById('finish').classList.remove('hidden');
@@ -850,7 +964,6 @@ document.getElementById('returnToResultButton').addEventListener('click', () => 
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
 });
 document.getElementById('safetyRestartButton').addEventListener('click', () => {
-  sendEvent('navigator_restart_clicked', { from: 'safety' });
   setTimeout(() => location.reload(), 80);
 });
 document.getElementById('heroImage').addEventListener('error', (event) => {
