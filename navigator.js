@@ -524,7 +524,6 @@ function deriveResult() {
     influenceText += ' Пока собственное действие не определено, поэтому дополнительное прояснение может быть полезнее резкого шага.';
   }
 
-  const areaLabel = areas.length ? areas.join(', ') : 'несколько пока не определённых сфер';
   let currentPoint = '';
   if (insight.code === 'choice_criteria') {
     currentPoint = 'Возможности и опоры для действия уже есть. Остановка, похоже, происходит не на этапе поиска новых направлений, а на этапе выбора, какому из них временно дать приоритет.';
@@ -533,7 +532,9 @@ function deriveResult() {
   } else if (insight.code === 'financial_reversible_test') {
     currentPoint = 'Намерение действовать уже сформулировано, но цена финансовой ошибки воспринимается как существенная. Поэтому сначала нужна проверка, которая даст факты без крупного обязательства.';
   } else if (readyUndecided) {
-    currentPoint = `Напряжение уже заметно в сфере «${areaLabel}», но это ещё не означает готовность начать именно с неё. Сфера напряжения уже заметна, но точка начала пока не определена.`;
+    currentPoint = areas.length === 1
+      ? `Напряжение в теме «${areas[0]}» уже заметно, но пока нельзя уверенно сказать, что начинать стоит именно с неё. Сначала полезно уточнить конкретный момент, в котором действие останавливается.`
+      : 'По вашим ответам видно, что необходимость перемен уже ощущается, но пока недостаточно данных, чтобы уверенно выбрать одну точку начала. Сейчас полезнее уточнить конкретный момент остановки, чем делать широкий вывод о всей ситуации.';
   } else if (topicsDiffer) {
     currentPoint = topicSummary;
   } else if (external && exhausted) {
@@ -649,9 +650,13 @@ function insightSection(insight) {
 function renderResult(data) {
   const root = document.getElementById('resultBlocks');
   root.replaceChildren();
+  const insight = normalizedInsight(data.insight);
+  document.getElementById('resultTitle').textContent = insight.code === 'insufficient_data'
+    ? 'Сначала стоит точнее определить точку начала'
+    : 'Точка начала, которая сейчас выглядит реалистичной';
   root.appendChild(resultSection('1. Ваша текущая точка', data.currentPoint));
   root.appendChild(resultSection('2. Наиболее важная тема и точка начала', data.topicSummary));
-  root.appendChild(insightSection(data.insight));
+  root.appendChild(insightSection(insight));
   root.appendChild(resultSection('3. Что находится в вашей зоне влияния', data.influenceText));
   root.appendChild(resultSection('4. Что может мешать', data.barriers.length ? data.barriers.join(' · ') : 'Пока нельзя уверенно выделить один барьер.'));
   root.appendChild(resultSection('5. Ваш первый реалистичный шаг', data.firstStep));
