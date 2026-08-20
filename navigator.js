@@ -6,6 +6,15 @@ const NAV_STATE_KEY = 'platformaNavigatorResultState';
 const CATALOG_URL = 'specialists.html';
 const NONE_AREA = 'Пока сложно определить';
 const NONE_TOPIC = 'Пока не могу выбрать';
+const INITIAL_REQUEST_MAX_LENGTH = 280;
+const FIRST_STEP_TITLES = {
+  choice_criteria: 'Три критерия выбора',
+  knowledge_action_gap: 'Один шаг без нового обучения',
+  external_boundary: 'Разделить зоны влияния',
+  limited_capacity: 'Снизить нагрузку на 48 часов',
+  financial_reversible_test: 'Обратимый тест без вложений',
+  insufficient_data: 'Уточнить момент остановки',
+};
 
 function createSessionId() {
   return globalThis.crypto?.randomUUID
@@ -603,6 +612,7 @@ function deriveResult() {
     influenceText,
     barriers,
     firstStep,
+    firstStepTitle: FIRST_STEP_TITLES[insight.code] || 'Один обратимый шаг',
     why,
     support,
     specialistType,
@@ -881,8 +891,18 @@ function choiceBox(id, values, setter) {
 }
 
 function structuredPayload() {
+  const insight = normalizedInsight(resultData.insight);
+  const initialRequestConsent = document.getElementById('requestConsent').checked;
+  const initialRequest = initialRequestConsent ? sanitizedInitialRequest() : '';
   const structuredSummary = `Отражение: ${feedbackState.reflection} · Реалистичность шага: ${feedbackState.realistic} · Понятность объяснения: ${feedbackState.explain}`;
-  const feedbackComment = feedbackState.text.trim();
+  const feedbackComment = feedbackState.text.trim().replace(/\s+/g, ' ');
+  const analyticsSummary = [
+    `Аналитический паттерн: ${insight.code}`,
+    `Приоритетная тема: ${resultData.analyticsPriority}`,
+    `Краткий первый шаг: ${resultData.firstStepTitle}`,
+    `Первоначальная формулировка: ${initialRequest}`,
+    `Согласие на формулировку: ${initialRequestConsent ? 'Да' : 'Нет'}`,
+  ].join('\n');
   return {
     sessionId,
     status: 'завершено',
@@ -901,14 +921,40 @@ function structuredPayload() {
     trustScore: feedbackState.trust,
     bookingReadiness: feedbackState.discuss,
     bookingClicked: false,
-    comment: feedbackComment
+    comment: `${feedbackComment
       ? `${structuredSummary} · Открытая обратная связь: ${feedbackComment}`
-      : structuredSummary,
+      : structuredSummary}\n${analyticsSummary}`,
     name: '',
     contact: '',
     consent: true,
     source: 'AI-навигатор Платформа · interview update',
+    initialRequest,
+    analyticPattern: insight.code,
+    priorityTopic: resultData.analyticsPriority,
+    firstStepTitle: resultData.firstStepTitle,
+    initialRequestConsent,
   };
+}
+
+function sanitizedInitialRequest() {
+  if (safetySignal()) return '';
+  const value = String(answers.mainConcern || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, INITIAL_REQUEST_MAX_LENGTH);
+  if (!value) return '';
+
+  const sensitivePatterns = [
+    /\b[A-ZА-ЯЁ][a-zа-яё]{2,}\s+[A-ZА-ЯЁ][a-zа-яё]{2,}\b/u,
+    /(?:меня зовут|мо[её] имя|телефон|whatsapp|telegram|телеграм|почта|e-?mail|адрес|улица|квартира)/iu,
+    /[\w.+-]+@[\w.-]+\.[A-Za-zА-Яа-яЁё]{2,}/u,
+    /(?:https?:\/\/|www\.)\S+/iu,
+    /@[A-Za-z0-9_]{3,}/u,
+    /(?:\+?\d[\s().-]*){7,}/u,
+    /(?:суицид|самоубий|убить себя|не хочу жить|срочн\w* помощ|насили|угрож)/iu,
+  ];
+  return sensitivePatterns.some((pattern) => pattern.test(value)) ? '' : value;
 }
 
 async function submitFeedback() {
