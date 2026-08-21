@@ -108,7 +108,7 @@ npm test
 npm run test:syntax
 ```
 
-Проверяются safety gate, схема, insufficient data, приоритет ресурса при противоречиях, Practice Map lookup, invalid Practice ID, consent stripping, analytics payload, mock client и сценарии T01–T11. T12 проверяется браузерным mobile smoke-test на 360 px. В local mode внешние POST блокируются логикой приложения.
+Проверяются safety gate, схема, insufficient data, приоритет ресурса при противоречиях, Practice Map lookup, invalid Practice ID, consent stripping, analytics payload, mock client и все сценарии T01–T12. Дополнительно T12 проверяется браузерным mobile smoke-test на 360 px. В local mode внешние POST блокируются логикой приложения.
 
 ## Research acceptance criteria
 
