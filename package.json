@@ -5,10 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "test:syntax": "node --check navigator.js && node --check src/aiClient.js && node --check server/src/index.js"
+    "test:syntax": "node --check navigator.js && node --check src/aiClient.js && node --check src/persistence.js && node --check server/src/index.js"
   },
   "engines": {
     "node": ">=20"
   }
 }
-

@@ -3,6 +3,7 @@
 import { createAiClient, AI_MODES, normalizeNavigatorAnswers } from './src/aiClient.js';
 import { createAnalytics } from './src/analytics.js';
 import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
+import { createPersistedNavigatorState } from './src/persistence.js';
 import { renderAiResult } from './src/resultRenderer.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from './src/safety.js';
 
@@ -679,10 +680,10 @@ function renderResult(data) {
 
 function persistNavigatorResult() {
   try {
-    sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify({
-      answers,
-      resultData,
-    }));
+    sessionStorage.setItem(
+      NAV_STATE_KEY,
+      JSON.stringify(createPersistedNavigatorState(answers, resultData)),
+    );
   } catch (error) {}
 }
 

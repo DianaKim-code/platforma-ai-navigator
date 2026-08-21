@@ -32,6 +32,7 @@ frontend + approved Practice Map
 - `src/safety.js` — детерминированный safety gate, выполняющийся до AI;
 - `src/schema.js` — фиксированная схема и валидация ответа;
 - `src/practiceMap.js` — загрузка, подбор и проверка Practice ID;
+- `src/persistence.js` — privacy-safe snapshot для восстановления результата после Back;
 - `src/resultRenderer.js` — безопасный DOM-render результата через `textContent`;
 - `src/analytics.js` — события v3 и удаление открытого текста без consent;
 - `data/practices.json` — 30 фактически импортированных утверждённых практик;
@@ -94,6 +95,8 @@ Backend ограничивает CORS production-origin доменом `https://
 Feedback v3 содержит пять отдельных шкал 1–5: соответствие ситуации, понятность объяснения, ясность после результата, реалистичность первого шага и доверие. Дополнительно фиксируются узнавание результата, ощущение простого повторения и готовность обсудить результат.
 
 Открытые формулировки и комментарий передаются в аналитику только после отдельного явного consent. Без него поля `openConcern` и `openFeedback` отсутствуют. Даже при consent фильтр удаляет контакты, URL, телефоны, явные идентификаторы и кризисные формулировки. Технические события не содержат тексты ответов.
+
+Для восстановления результата после возврата со страницы специалиста `sessionStorage` сохраняет только allowlist закрытых ответов и `resultData`. Поля `mainConcern`, `desiredAction`, `stopFeeling`, `ownAction`, `openConcern`, `openFeedback` и другие свободные формулировки в snapshot не попадают. Свободно введённые значения `priority`/`readyTopic` также исключаются.
 
 События v3: `navigator_start`, `question_answered`, `clarification_shown`, `result_generated`, `result_status`, `route_assigned`, `practice_shown`, `practice_opened`, `feedback_submitted`, `profile_opened`, `whatsapp_clicked`. `profile_opened` и `whatsapp_clicked` не считаются фактической записью. `message_received`, `booking` и `payment` пока учитываются отдельно вручную.
 

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { AI_MODES, createAiClient, createMockAnalysis } from '../src/aiClient.js';
 import { analyticsPayload } from '../src/analytics.js';
 import { validatePracticeId } from '../src/practiceMap.js';
+import { createPersistedNavigatorState } from '../src/persistence.js';
 import { SAFETY_STOP_ANSWER } from '../src/safety.js';
 
 const practices = JSON.parse(await readFile(new URL('../data/practices.json', import.meta.url), 'utf8'));
@@ -111,4 +112,42 @@ test('T12 mobile CSS has a 360px-safe single-column path', async () => {
   assert.match(html, /\.result-actions,\.feedback-actions\{grid-template-columns:1fr\}/u);
   assert.match(html, /width:100%/u);
   assert.doesNotMatch(html, /min-width:\s*[4-9]\d{2}px/iu);
+});
+
+test('T13 Open text not persisted without consent', () => {
+  const resultData = createMockAnalysis(answers(), practices);
+  const snapshot = createPersistedNavigatorState({
+    areas: ['Работа или профессия'],
+    duration: '3–6 месяцев',
+    priority: 'Работа или профессия',
+    readyTopic: 'Свободная пользовательская формулировка',
+    obstacle: 'Не знала, с чего начать',
+    influence: 'В основном от моих действий',
+    losses: ['Время'],
+    risk: 'Неизвестность',
+    supports: ['Опыт и знания'],
+    resourceLevel: 'Есть силы на один небольшой шаг',
+    tried: ['Разбиралась самостоятельно'],
+    missing: 'Конкретного плана',
+    helpClarity: 'Есть предположение, но не уверена',
+    preferredFormat: 'Сначала самостоятельно разобраться с AI',
+    trustFactors: ['Понимать, почему сделан такой вывод'],
+    safetyLevel: 'Да, могу продолжить',
+    mainConcern: 'private main concern',
+    desiredAction: 'private desired action',
+    stopFeeling: 'private feeling',
+    ownAction: 'private own action',
+    openConcern: 'private normalized concern',
+    openFeedback: 'private feedback',
+  }, resultData);
+
+  assert.deepEqual(snapshot.answers.areas, ['Работа или профессия']);
+  assert.equal(snapshot.answers.priority, 'Работа или профессия');
+  assert.equal('readyTopic' in snapshot.answers, false);
+  for (const field of ['mainConcern', 'desiredAction', 'stopFeeling', 'ownAction', 'openConcern', 'openFeedback']) {
+    assert.equal(field in snapshot.answers, false);
+  }
+  assert.equal(snapshot.resultData, resultData);
+  const serialized = JSON.stringify(snapshot);
+  assert.doesNotMatch(serialized, /private main concern|private desired action|private feeling|private own action|private normalized concern|private feedback/u);
 });
