@@ -156,8 +156,8 @@
     function track(event,source){
       send({sessionId,status:event,event,specialistId:'diana_kim',source,page:'specialists_catalog',timestamp:new Date().toISOString()}).catch(()=>{});
     }
-    document.querySelector('[data-profile-link]').addEventListener('click',()=>track('specialist_profile_clicked','specialists_catalog'));
-    document.querySelector('[data-whatsapp-link]').addEventListener('click',()=>track('profile_whatsapp_clicked','specialists_catalog'));
+    document.querySelector('[data-profile-link]').addEventListener('click',()=>track('profile_opened','specialists_catalog'));
+    document.querySelector('[data-whatsapp-link]').addEventListener('click',()=>track('whatsapp_clicked','specialists_catalog'));
   </script>
 </body>
 </html>

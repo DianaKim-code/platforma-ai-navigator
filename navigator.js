@@ -1,11 +1,18 @@
 'use strict';
 
+import { createAiClient, AI_MODES, normalizeNavigatorAnswers } from './src/aiClient.js';
+import { createAnalytics } from './src/analytics.js';
+import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
+import { renderAiResult } from './src/resultRenderer.js';
+import { evaluateSafety, SAFETY_STOP_ANSWER } from './src/safety.js';
+
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
 const SESSION_KEY = 'platformaSessionId';
 const NAV_STATE_KEY = 'platformaNavigatorResultState';
 const CATALOG_URL = 'specialists.html';
 const NONE_AREA = 'Пока сложно определить';
 const NONE_TOPIC = 'Пока не могу выбрать';
+const AI_ENDPOINT = document.documentElement.dataset.aiEndpoint || '';
 
 function createSessionId() {
   return globalThis.crypto?.randomUUID
@@ -28,10 +35,12 @@ const sessionId = getSessionId();
 const answers = {};
 const feedbackState = {
   reflection: '',
-  clarity: '',
-  realistic: '',
-  explain: '',
+  explanation: '',
+  clarityAfter: '',
+  stepRealism: '',
   trust: '',
+  recognition: '',
+  repetition: '',
   discuss: '',
   text: '',
 };
@@ -39,6 +48,10 @@ const feedbackState = {
 let idx = 0;
 let resultData = null;
 let feedbackInitialized = false;
+let practices = [];
+let aiClient = null;
+let analysisInFlight = false;
+const shownClarifications = new Set();
 
 const blockInfo = {
   1: {
@@ -94,11 +107,13 @@ const fixedQuestions = [
   { id: 'losses', block: 5, type: 'multi', q: 'Что вы теряете, пока ситуация не меняется?', options: ['Время', 'Деньги', 'Энергию', 'Спокойствие', 'Уверенность', 'Возможности', 'Отношения', 'Здоровье или самочувствие', 'Другое'], help: 'Можно выбрать несколько вариантов.' },
   { id: 'risk', block: 5, type: 'single', q: 'Что больше всего пугает вас в возможных изменениях?', options: ['Финансовые потери', 'Ошибка или неудача', 'Потеря стабильности', 'Осуждение окружающих', 'Конфликт с близкими', 'Слишком большая нагрузка', 'Неизвестность', 'Другое'] },
   { id: 'supports', block: 5, type: 'multi', q: 'Что уже может стать вашей опорой?', options: ['Опыт и знания', 'Поддержка близких', 'Финансовый резерв', 'Свободное время', 'Профессиональные контакты', 'Предыдущий успешный опыт', 'Готовность обратиться за помощью', 'Пока не вижу опоры', 'Другое'], exclusive: 'Пока не вижу опоры', help: 'Можно выбрать несколько вариантов.' },
+  { id: 'resourceLevel', block: 5, type: 'single', q: 'Сколько сил у вас сейчас на изменения?', options: ['Сейчас сил почти нет', 'Есть силы на один небольшой шаг', 'Есть ресурс для последовательных действий', 'Пока трудно определить'] },
   { id: 'tried', block: 6, type: 'multi', q: 'Что вы уже пробовали, чтобы изменить ситуацию?', options: ['Разбиралась самостоятельно', 'Использовала ChatGPT или другой AI', 'Обращалась к психологу', 'Работала с коучем или наставником', 'Проходила обучение', 'Обсуждала с близкими', 'Начинала действовать, но остановилась', 'Пока ничего не пробовала', 'Другое'], exclusive: 'Пока ничего не пробовала', help: 'Можно выбрать несколько вариантов.' },
   { id: 'missing', block: 6, type: 'single', q: 'Чего не хватило в предыдущих решениях?', options: ['Конкретного плана', 'Понимания главной проблемы', 'Поддержки', 'Контроля и сопровождения', 'Подходящего специалиста', 'Уверенности', 'Времени', 'Денег', 'Решения другого человека', 'Другое'] },
   { id: 'helpClarity', block: 6, type: 'single', q: 'Понимаете ли вы, какая помощь или какой специалист вам сейчас нужен?', options: ['Да, понимаю', 'Есть предположение, но не уверена', 'Нет, не понимаю', 'Возможно, мне пока не нужен специалист'] },
   { id: 'preferredFormat', block: 7, type: 'single', q: 'Какой формат сейчас был бы для вас наиболее комфортным?', options: ['Сначала самостоятельно разобраться с AI', 'Сначала пройти короткое AI-прояснение, затем решить', 'Сразу поговорить с живым специалистом', 'Сочетать AI и сопровождение специалиста', 'Пока не знаю'] },
   { id: 'trustFactors', block: 7, type: 'multi', q: 'Что особенно важно для доверия к рекомендации AI?', options: ['Понимать, почему сделан такой вывод', 'Получить конкретные рекомендации без общих слов', 'Учитывать мою реальную ситуацию', 'Иметь возможность проверить информацию', 'Не передавать лишние личные данные', 'Иметь возможность перейти к живому человеку', 'Другое'], help: 'Можно выбрать несколько вариантов.' },
+  { id: 'safetyLevel', block: 7, type: 'single', q: 'Можете ли вы сейчас безопасно продолжить и получить обычный навигационный результат?', options: ['Да, могу продолжить', SAFETY_STOP_ANSWER] },
 ];
 
 function concreteAreas() {
@@ -146,6 +161,12 @@ function questions() {
 const IS_LOCAL_PREVIEW = ['localhost', '127.0.0.1'].includes(location.hostname);
 const previewEvents = [];
 globalThis.__platformaPreviewEvents = previewEvents;
+const analytics = createAnalytics({
+  endpoint: ENDPOINT,
+  sessionId,
+  local: IS_LOCAL_PREVIEW,
+  sink: previewEvents,
+});
 
 function send(payload) {
   if (IS_LOCAL_PREVIEW) {
@@ -162,15 +183,7 @@ function send(payload) {
 }
 
 function sendEvent(event, meta = {}) {
-  return send({
-    sessionId,
-    status: event,
-    event,
-    page: 'navigator',
-    timestamp: new Date().toISOString(),
-    source: 'navigator_interview_update',
-    ...meta,
-  }).catch(() => {});
+  return analytics.send(event, meta).catch(() => {});
 }
 
 function start() {
@@ -179,7 +192,7 @@ function start() {
   } catch (error) {}
   document.getElementById('intro').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  sendEvent('navigator_started');
+  sendEvent('navigator_start');
   render();
 }
 
@@ -199,6 +212,11 @@ function render() {
   const showIntro = !previous || previous.block !== question.block;
   bridge.textContent = showIntro ? info.intro : '';
   bridge.classList.toggle('hidden', !showIntro);
+
+  if (['priority', 'readyTopic'].includes(question.id) && !shownClarifications.has(question.id)) {
+    shownClarifications.add(question.id);
+    sendEvent('clarification_shown', { questionId: question.id });
+  }
 
   const progress = Math.round((idx / list.length) * 100);
   document.getElementById('bar').style.width = `${progress}%`;
@@ -302,6 +320,11 @@ function goNext() {
     alert('Выберите вариант или напишите короткий ответ');
     return;
   }
+  sendEvent('question_answered', {
+    questionId: question.id,
+    answerType: question.type,
+    selectionCount: Array.isArray(answers[question.id]) ? answers[question.id].length : 1,
+  });
   idx += 1;
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -315,24 +338,14 @@ function goBack() {
 }
 
 function safetySignal() {
-  const text = ['mainConcern', 'desiredAction', 'stopFeeling', 'ownAction']
-    .map((id) => (typeof answers[id] === 'string' ? answers[id] : ''))
-    .join(' ')
-    .toLowerCase();
-  return [
-    'не хочу жить',
-    'суицид',
-    'самоубий',
-    'убить себя',
-    'самоповреж',
-    'угроза жизни',
-    'угрожает мне',
-    'избивает',
-    'насилие',
-    'непосредственная угроза',
-    'срочная медицинская помощь',
-    'потеря сознания',
-  ].some((marker) => text.includes(marker));
+  return evaluateSafety({
+    ...normalizeNavigatorAnswers(answers, sessionId),
+    mainConcern: answers.mainConcern,
+    desiredAction: answers.desiredAction,
+    stopFeeling: answers.stopFeeling,
+    ownAction: answers.ownAction,
+    safetyLevel: answers.safetyLevel,
+  }).status === 'safety_stop';
 }
 
 function selectedTopic(value) {
@@ -648,20 +661,20 @@ function insightSection(insight) {
 }
 
 function renderResult(data) {
-  const root = document.getElementById('resultBlocks');
-  root.replaceChildren();
-  const insight = normalizedInsight(data.insight);
-  document.getElementById('resultTitle').textContent = insight.code === 'insufficient_data'
-    ? 'Сначала стоит точнее определить точку начала'
-    : 'Точка начала, которая сейчас выглядит реалистичной';
-  root.appendChild(resultSection('1. Ваша текущая точка', data.currentPoint));
-  root.appendChild(resultSection('2. Наиболее важная тема и точка начала', data.topicSummary));
-  root.appendChild(insightSection(insight));
-  root.appendChild(resultSection('3. Что находится в вашей зоне влияния', data.influenceText));
-  root.appendChild(resultSection('4. Что может мешать', data.barriers.length ? data.barriers.join(' · ') : 'Пока нельзя уверенно выделить один барьер.'));
-  root.appendChild(resultSection('5. Ваш первый реалистичный шаг', data.firstStep));
-  root.appendChild(resultSection('6. Почему предложен именно этот шаг', data.why));
-  root.appendChild(resultSection('7. Какой формат поддержки может подойти', data.support));
+  const practice = validatePracticeId(practices, data.practiceId);
+  renderAiResult(
+    document.getElementById('resultBlocks'),
+    document.getElementById('resultTitle'),
+    data,
+    practice,
+  );
+  const details = document.getElementById('practiceDetails');
+  details?.addEventListener('toggle', () => {
+    if (details.open && !details.dataset.tracked) {
+      details.dataset.tracked = 'true';
+      sendEvent('practice_opened', { practiceId: data.practiceId, route: data.route });
+    }
+  });
 }
 
 function persistNavigatorResult() {
@@ -695,16 +708,18 @@ function restoreNavigatorResultOnHistoryNavigation() {
   } catch (error) {}
 }
 
-function makeResult() {
+async function makeResult() {
+  if (analysisInFlight) return;
   document.getElementById('app').classList.add('hidden');
   if (safetySignal()) {
     document.getElementById('safety').classList.remove('hidden');
     send({
       sessionId,
       status: 'безопасный выход',
-      event: 'safety_exit',
+      event: 'result_status',
+      resultStatus: 'safety_stop',
       safetyLevel: 'Требуется срочная помощь',
-      route: 'safety',
+      route: null,
       bookingClicked: false,
       comment: '',
       name: '',
@@ -715,38 +730,72 @@ function makeResult() {
     return;
   }
 
-  resultData = deriveResult();
-  renderResult(resultData);
-  persistNavigatorResult();
-  document.getElementById('result').classList.remove('hidden');
-  document.getElementById('feedback').classList.remove('hidden');
-  document.getElementById('finish').classList.add('hidden');
-  document.getElementById('specialistRecommendation').classList.add('hidden');
-  document.getElementById('supportDetails').classList.add('hidden');
-  prepareSpecialist(resultData);
-  setupFeedback();
-  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  analysisInFlight = true;
+  document.getElementById('analysisError').classList.add('hidden');
+  document.getElementById('analysisLoading').classList.remove('hidden');
+  const loadingItems = [...document.querySelectorAll('.loading-step')];
+  let stage = 0;
+  const loadingTimer = setInterval(() => {
+    stage = Math.min(stage + 1, loadingItems.length - 1);
+    loadingItems.forEach((item, index) => item.classList.toggle('active', index === stage));
+  }, 900);
+  try {
+    const normalized = normalizeNavigatorAnswers(answers, sessionId);
+    resultData = await aiClient.analyzeNavigatorAnswers(normalized);
+    const practice = validatePracticeId(practices, resultData.practiceId);
+    if (resultData.practiceId && !practice) {
+      sendEvent('practice_validation_error', { practiceId: resultData.practiceId });
+      resultData.practiceId = null;
+    }
+    renderResult(resultData);
+    persistNavigatorResult();
+    document.getElementById('result').classList.remove('hidden');
+    document.getElementById('feedback').classList.remove('hidden');
+    document.getElementById('finish').classList.add('hidden');
+    document.getElementById('specialistRecommendation').classList.add('hidden');
+    document.getElementById('supportDetails').classList.add('hidden');
+    prepareSpecialist(resultData);
+    setupFeedback();
+    sendEvent('result_generated', { aiMode: aiClient.mode });
+    sendEvent('result_status', { resultStatus: resultData.status, confidence: resultData.confidence });
+    if (resultData.route) sendEvent('route_assigned', { route: resultData.route });
+    if (resultData.practiceId) sendEvent('practice_shown', { practiceId: resultData.practiceId, route: resultData.route });
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    const message = error.message === 'AI_TIMEOUT'
+      ? 'AI-анализ занял слишком много времени. Ваши ответы не потеряны. Попробуйте ещё раз.'
+      : error.message === 'AI_OFFLINE'
+        ? 'Нет соединения с интернетом. Ваши ответы не потеряны. Подключитесь к сети и попробуйте ещё раз.'
+        : 'Сейчас не удалось сформировать результат. Ваши ответы не потеряны. Попробуйте ещё раз.';
+    document.getElementById('analysisErrorText').textContent = message;
+    document.getElementById('analysisError').classList.remove('hidden');
+  } finally {
+    clearInterval(loadingTimer);
+    document.getElementById('analysisLoading').classList.add('hidden');
+    analysisInFlight = false;
+  }
 }
 
 function prepareSpecialist(data) {
-  document.getElementById('specialistMatch').textContent = data.dianaReason;
-  const message = `Здравствуйте, Диана! Я прошла AI-навигатор на платформе. Моя основная тема — ${data.mainTopic}. Мне рекомендован формат ${data.specialistType}. Хочу уточнить подробности`;
+  const topic = answers.readyTopic || answers.priority || (answers.areas || [])[0] || 'мой запрос';
+  document.getElementById('specialistMatch').textContent = 'Вы можете самостоятельно изучить профиль и решить, соответствует ли направление работы специалиста вашему запросу.';
+  const message = `Здравствуйте, Диана! Я прошла AI-навигатор на платформе. Моя основная тема — ${topic}. Хочу уточнить подробности`;
   document.getElementById('booking').href = `https://wa.me/77774563866?text=${encodeURIComponent(message)}`;
 }
 
 function showSupport() {
   sendEvent('support_format_clicked', {
     route: resultData.route,
-    supportType: resultData.specialistType,
+    supportType: resultData.humanSupport.urgency,
   });
   const box = document.getElementById('supportDetails');
   box.classList.remove('hidden');
   const specialist = document.getElementById('specialistRecommendation');
-  if (resultData.recommendDiana) {
-    document.getElementById('supportMore').textContent = 'По вашим ответам профиль Дианы может соответствовать теме, с которой вы готовы начать. Причина рекомендации указана ниже.';
+  if (resultData.humanSupport.recommended) {
+    document.getElementById('supportMore').textContent = resultData.humanSupport.reason;
     specialist.classList.remove('hidden');
   } else {
-    document.getElementById('supportMore').textContent = 'Подходящий формат указан в результате. Конкретный специалист не предлагается автоматически без достаточных оснований.';
+    document.getElementById('supportMore').textContent = resultData.humanSupport.reason;
     specialist.classList.add('hidden');
   }
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -774,7 +823,7 @@ function trackBooking() {
     bookingClicked: true,
     route: resultData.route,
     source: 'navigator_result_card',
-    event: 'profile_whatsapp_clicked',
+    event: 'whatsapp_clicked',
     specialistId: 'diana_kim',
     page: 'navigator_result',
     timestamp: new Date().toISOString(),
@@ -782,20 +831,17 @@ function trackBooking() {
 }
 
 function saveResult() {
-  const insight = normalizedInsight(resultData.insight);
+  const practice = validatePracticeId(practices, resultData.practiceId);
   const lines = [
     'ПЛАТФОРМА — результат AI-навигатора',
     '',
-    `Ваша текущая точка: ${resultData.currentPoint}`,
-    `Темы: ${resultData.topicSummary}`,
-    `Что показывает сочетание ответов: ${insight.conclusion}`,
-    `Основание вывода: ${insight.basis}`,
-    `Ограничение уверенности: ${insight.confidenceLimit}`,
-    `Зона влияния: ${resultData.influenceText}`,
-    `Что может мешать: ${resultData.barriers.join(' · ')}`,
-    `Первый шаг: ${resultData.firstStep}`,
-    `Почему этот шаг: ${resultData.why}`,
-    `Формат поддержки: ${resultData.support}`,
+    `Что сейчас видно: ${resultData.reflection}`,
+    `Наблюдаемые факты: ${resultData.observedFacts.join(' · ')}`,
+    `Рабочая гипотеза: ${resultData.workingHypothesis}`,
+    `Как можно сформулировать запрос: ${resultData.requestDraft}`,
+    `Первый шаг: ${practice?.text || resultData.nextStep}`,
+    `Когда может быть полезен человек: ${resultData.humanSupport.reason}`,
+    resultData.disclaimer,
   ];
   const blob = new Blob([lines.join('\n\n')], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -804,7 +850,7 @@ function saveResult() {
   link.download = 'platforma-result.txt';
   link.click();
   URL.revokeObjectURL(url);
-  sendEvent('navigator_result_saved', { route: resultData.route });
+  sendEvent('navigator_result_saved', { route: resultData.route, resultStatus: resultData.status });
 }
 
 function restartNavigator() {
@@ -820,20 +866,26 @@ function setupFeedback() {
   scoreBox('reflectionScore', (value) => {
     feedbackState.reflection = String(value);
   });
-  scoreBox('clarityScore', (value) => {
-    feedbackState.clarity = String(value);
-  });
-  scoreBox('realisticScore', (value) => {
-    feedbackState.realistic = String(value);
-  });
   scoreBox('explanationScore', (value) => {
-    feedbackState.explain = String(value);
+    feedbackState.explanation = String(value);
+  });
+  scoreBox('clarityAfterScore', (value) => {
+    feedbackState.clarityAfter = String(value);
+  });
+  scoreBox('stepRealismScore', (value) => {
+    feedbackState.stepRealism = String(value);
   });
   scoreBox('trustScore', (value) => {
     feedbackState.trust = String(value);
   });
   choiceBox('feedbackDiscuss', ['Да', 'Возможно позже', 'Нет'], (value) => {
     feedbackState.discuss = value;
+  });
+  choiceBox('recognition', ['Да, точно', 'Частично', 'Скорее нет'], (value) => {
+    feedbackState.recognition = value;
+  });
+  choiceBox('repetition', ['Да', 'Нет'], (value) => {
+    feedbackState.repetition = value;
   });
   document.getElementById('feedbackText').addEventListener('input', (event) => {
     feedbackState.text = event.target.value.slice(0, 500);
@@ -880,43 +932,71 @@ function choiceBox(id, values, setter) {
   });
 }
 
+function safeOpenText(value, maxLength) {
+  const text = String(value || '').trim().replace(/\s+/gu, ' ').slice(0, maxLength);
+  if (!text) return '';
+  const sensitivePatterns = [
+    /(?:https?:\/\/|www\.|@|\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b)/iu,
+    /(?:\+?\d[\d\s().-]{7,}\d)/u,
+    /(?:меня зовут|мо[её] имя|телефон|whatsapp|telegram|телеграм|почта|e-?mail|адрес|улица|квартира)/iu,
+    /(?:не хочу жить|суицид|самоубий|убить себя|самоповреж|угроза жизни|избивает|насилие|потеря сознания)/iu,
+  ];
+  return sensitivePatterns.some((pattern) => pattern.test(text)) ? '' : text;
+}
+
 function structuredPayload() {
-  const structuredSummary = `Отражение: ${feedbackState.reflection} · Реалистичность шага: ${feedbackState.realistic} · Понятность объяснения: ${feedbackState.explain}`;
+  const practice = validatePracticeId(practices, resultData.practiceId);
+  const structuredSummary = `Отражение: ${feedbackState.reflection} · Понятность объяснения: ${feedbackState.explanation} · Ясность после: ${feedbackState.clarityAfter} · Реалистичность шага: ${feedbackState.stepRealism} · Доверие: ${feedbackState.trust} · Узнавание: ${feedbackState.recognition} · Простое повторение: ${feedbackState.repetition}`;
   const feedbackComment = feedbackState.text.trim();
-  return {
+  const openTextConsent = document.getElementById('openTextConsent').checked;
+  const payload = {
     sessionId,
     status: 'завершено',
+    event: 'feedback_submitted',
+    resultStatus: resultData.status,
     mainSituation: (answers.areas || []).join(' · '),
     mainConcern: answers.obstacle || '',
     duration: answers.duration || '',
     lifeImpact: (answers.losses || []).join(' · '),
     triedBefore: (answers.tried || []).join(' · '),
-    desiredResult: resultData.analyticsPriority,
+    desiredResult: answers.readyTopic || answers.priority || '',
     currentNeed: answers.preferredFormat || '',
-    resourceLevel: (answers.supports || []).join(' · '),
+    resourceLevel: answers.resourceLevel || '',
     safetyLevel: 'Обычный маршрут',
     route: resultData.route,
-    practice: resultData.firstStep,
-    clarityScore: feedbackState.clarity,
+    practice: practice?.id || '',
+    reflectionScore: feedbackState.reflection,
+    explanationScore: feedbackState.explanation,
+    clarityScore: feedbackState.clarityAfter,
+    stepRealism: feedbackState.stepRealism,
     trustScore: feedbackState.trust,
+    recognition: feedbackState.recognition,
+    repetition: feedbackState.repetition,
     bookingReadiness: feedbackState.discuss,
     bookingClicked: false,
-    comment: feedbackComment
-      ? `${structuredSummary} · Открытая обратная связь: ${feedbackComment}`
-      : structuredSummary,
+    comment: structuredSummary,
     name: '',
     contact: '',
     consent: true,
-    source: 'AI-навигатор Платформа · interview update',
+    source: 'AI-навигатор Платформа · MVP v3 beta',
+    timestamp: new Date().toISOString(),
   };
+  if (openTextConsent) {
+    payload.openConcern = safeOpenText(answers.mainConcern, 320);
+    payload.openFeedback = safeOpenText(feedbackComment, 500);
+    payload.comment = payload.openFeedback ? `${structuredSummary} · Открытая обратная связь: ${payload.openFeedback}` : structuredSummary;
+  }
+  return payload;
 }
 
 async function submitFeedback() {
   if (!feedbackState.reflection
-    || !feedbackState.clarity
-    || !feedbackState.realistic
-    || !feedbackState.explain
+    || !feedbackState.explanation
+    || !feedbackState.clarityAfter
+    || !feedbackState.stepRealism
     || !feedbackState.trust
+    || !feedbackState.recognition
+    || !feedbackState.repetition
     || !feedbackState.discuss) {
     alert('Пожалуйста, ответьте на все короткие вопросы');
     return;
@@ -957,7 +1037,7 @@ document.getElementById('supportButton').addEventListener('click', showSupport);
 document.getElementById('specialistsButton').addEventListener('click', goToCatalog);
 document.getElementById('booking').addEventListener('click', trackBooking);
 document.getElementById('profileLink').addEventListener('click', () => {
-  sendEvent('specialist_profile_clicked', {
+  sendEvent('profile_opened', {
     specialistId: 'diana_kim',
     source: 'navigator_result_card',
     route: resultData.route,
@@ -965,6 +1045,7 @@ document.getElementById('profileLink').addEventListener('click', () => {
 });
 document.getElementById('submitFeedbackButton').addEventListener('click', submitFeedback);
 document.getElementById('skipFeedbackButton').addEventListener('click', skipFeedback);
+document.getElementById('retryAnalysisButton').addEventListener('click', makeResult);
 document.getElementById('returnToResultButton').addEventListener('click', () => {
   document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
 });
@@ -975,4 +1056,32 @@ document.getElementById('heroImage').addEventListener('error', (event) => {
   event.currentTarget.hidden = true;
   event.currentTarget.parentElement.classList.add('image-fallback');
 });
-restoreNavigatorResultOnHistoryNavigation();
+
+async function initializeV3() {
+  const startButton = document.getElementById('startButton');
+  startButton.disabled = true;
+  try {
+    practices = await loadPracticeMap();
+    const mode = IS_LOCAL_PREVIEW ? AI_MODES.MOCK : AI_MODES.LIVE;
+    aiClient = createAiClient({
+      mode,
+      endpoint: AI_ENDPOINT,
+      practices,
+      onValidationError: ({ type, practiceId }) => {
+        if (type === 'unknown_practice_id') sendEvent('practice_validation_error', { practiceId });
+      },
+    });
+    globalThis.__platformaV3 = {
+      mode,
+      practiceCount: practices.length,
+      normalizeNavigatorAnswers,
+    };
+    restoreNavigatorResultOnHistoryNavigation();
+    startButton.disabled = false;
+  } catch (error) {
+    startButton.textContent = 'Навигатор временно недоступен';
+    document.querySelector('#intro .notice').textContent = 'Не удалось загрузить утверждённую библиотеку практик. Обновите страницу или попробуйте позже.';
+  }
+}
+
+initializeV3();

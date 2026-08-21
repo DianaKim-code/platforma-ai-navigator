@@ -100,10 +100,10 @@
       return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true});
     }
     function trackProfileWhatsApp(source){
-      const payload={sessionId,status:'переход к записи',bookingClicked:true,event:'profile_whatsapp_clicked',specialistId:'diana_kim',source,page:'specialist_profile',timestamp:new Date().toISOString()};
+      const payload={sessionId,status:'переход к записи',bookingClicked:true,event:'whatsapp_clicked',specialistId:'diana_kim',source,page:'specialist_profile',timestamp:new Date().toISOString()};
       if(new URLSearchParams(location.search).get('analytics_test')==='1'){
         payload.testEvent=true;
-        payload.comment=`TEST_EVENT: profile_whatsapp_clicked · ${source}`;
+        payload.comment=`TEST_EVENT: whatsapp_clicked · ${source}`;
       }
       send(payload).catch(()=>{});
     }

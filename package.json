@@ -1,0 +1,14 @@
+{
+  "name": "platforma-ai-navigator",
+  "private": true,
+  "version": "3.0.0-beta.1",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:syntax": "node --check navigator.js && node --check src/aiClient.js && node --check server/src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
