@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import practices from '../../data/practices.json' with { type: 'json' };
 import { analyzeWithProvider } from './analyze.js';
 import { HttpInputError, ProviderError } from './errors.js';
 import { validateNavigatorPayload } from './requestValidation.js';
@@ -7,7 +7,6 @@ import { validateNavigatorPayload } from './requestValidation.js';
 const BODY_LIMIT_BYTES = 50 * 1024;
 const DEFAULT_PRODUCTION_ORIGIN = 'https://dianakim-code.github.io';
 const LOCAL_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000'];
-const practicesUrl = new URL('../../data/practices.json', import.meta.url);
 
 export function allowedOrigins(env) {
   return new Set([
@@ -59,7 +58,7 @@ export function safeError(error) {
 export function createAnalyzeProcessor({
   env = process.env,
   analyze = analyzeWithProvider,
-  loadPractices = async () => JSON.parse(await readFile(practicesUrl, 'utf8')),
+  loadPractices = async () => practices,
 } = {}) {
   return async function processAnalyze(payload) {
     const answers = validateNavigatorPayload(payload);
