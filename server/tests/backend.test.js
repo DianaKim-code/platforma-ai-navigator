@@ -389,3 +389,16 @@ test('T24 Deterministic route cannot be overridden by provider response', async 
   assert.equal(result.practice.id, result.practiceId);
   assert.ok(practices.find(({ id }) => id === result.practiceId).routes.includes('R1'));
 });
+
+test('Backend supplies ordinary human-support flags when provider omits them', async () => {
+  const answers = payload();
+  const providerHumanSupport = {
+    reason: 'При желании результат можно обсудить с подходящим специалистом.',
+  };
+  const result = await analyzeResult(answers, validResult({ humanSupport: providerHumanSupport }));
+  assert.deepEqual(result.humanSupport, {
+    reason: providerHumanSupport.reason,
+    recommended: false,
+    urgency: 'optional',
+  });
+});

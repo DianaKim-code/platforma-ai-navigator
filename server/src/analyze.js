@@ -201,6 +201,21 @@ function validationFailureStage(errors) {
     : 'schema_validation_failed';
 }
 
+function applyBackendHumanSupportDefaults(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const providerHumanSupport = value.humanSupport && typeof value.humanSupport === 'object'
+    ? value.humanSupport
+    : {};
+  return {
+    ...value,
+    humanSupport: {
+      ...providerHumanSupport,
+      recommended: false,
+      urgency: 'optional',
+    },
+  };
+}
+
 export function canonicalizeAnalysisResult(result, answers, practices) {
   const sourceText = answersText(answers);
   const route = resolveNavigatorRoute(answers);
@@ -359,7 +374,8 @@ export async function analyzeWithProvider(
     } catch {
       throw new ProviderError('AI_INVALID_RESPONSE', { stage: 'provider_content_json_parse_failed' });
     }
-    const validation = validateAnalysisResponse(parsed, new Set(practices.map(({ id }) => id)));
+    const normalized = applyBackendHumanSupportDefaults(parsed);
+    const validation = validateAnalysisResponse(normalized, new Set(practices.map(({ id }) => id)));
     if (!validation.ok) {
       throw new ProviderError('AI_INVALID_RESPONSE', {
         stage: validationFailureStage(validation.errors),

@@ -20,7 +20,8 @@ ObservedFacts предназначен для отдельных фактов. �
 «вы отметили», «вы выбрали», «вы указали».
 Working hypothesis всегда маркируй как предположение.
 Backend самостоятельно проверяет достаточность данных, подставляет утверждённые инструкции
-Practice Map и disclaimer. Не придумывай текст практики, её длительность или альтернативный шаг.
+Practice Map, humanSupport.recommended, humanSupport.urgency и disclaimer. Не придумывай текст
+практики, её длительность или альтернативный шаг.
 Не утверждай, что практика восстановит ресурс, вернёт энергию, снизит тревогу, улучшит состояние,
 приведёт к ясности или обязательно поможет. Описывай практику как небольшой способ проверки,
 наблюдения или поддержки без обещания результата.
@@ -48,7 +49,11 @@ export function buildPrompt(answers, practices, backendDecision = {}) {
       practiceId: 'approved ID | null',
       practiceReason: 'string',
       nextStep: 'empty string; backend fills it from Practice Map',
-      humanSupport: { recommended: false, reason: 'string', urgency: 'optional | useful | recommended | urgent' },
+      humanSupport: {
+        recommended: 'backend fills false',
+        reason: 'string',
+        urgency: 'backend fills optional',
+      },
       disclaimer: 'empty string; backend fills a deterministic disclaimer',
     },
   });
