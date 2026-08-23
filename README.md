@@ -84,6 +84,25 @@ Backend scaffold находится в `server/` и использует пер�
 
 Backend ограничивает CORS production-origin доменом `https://dianakim-code.github.io` и явными localhost-origin. `*` не используется. Ответ провайдера проходит серверную и повторную frontend-валидацию. Неизвестный route, confidence, urgency или Practice ID не показывается пользователю.
 
+## Vercel staging backend
+
+Primary current staging target: **Vercel Functions**. Alternative backend target: **Railway / standard Node server**.
+
+Vercel использует тонкие handlers `api/health.js` и `api/analyze.js`; safety, validation, provider integration, response schema и загрузка `data/practices.json` остаются в общих модулях `server/src`. Постоянный процесс `server/src/index.js` для Functions не запускается. `vercel.json` задаёт для analyze function максимум 30 секунд, сохраняя внутренний provider timeout 25 секунд.
+
+Настройка Preview/Staging:
+
+1. Импортировать GitHub repository `DianaKim-code/platforma-ai-navigator` в Vercel.
+2. Оставить **Root Directory** равным корню repository; Framework Preset — **Other**.
+3. Оставить **Production Branch** равной `main`.
+4. В **Project → Settings → Environment Variables → Preview** добавить только имена `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`, `ALLOWED_ORIGIN`. Значения и секреты в Git не добавлять.
+5. Push выполнить только в `feature/mvp-v3-ai-brain`.
+6. Получить созданный для feature branch **Preview Deployment**, не Production Deployment.
+7. Проверить `GET https://<preview-domain>/api/health`.
+8. Проверить `POST https://<preview-domain>/api/analyze`: сначала safety payload без вызова провайдера, затем обычный запрос только после самостоятельной настройки Preview env.
+
+Без `AI_API_KEY` ожидаются: health `200`, safety response `200`, обычный analyze — контролируемый `503` без stack trace. Не запускать `vercel --prod`, не менять production branch и не подключать Preview endpoint к production frontend без отдельного решения.
+
 ## Practice Map
 
 `data/practices.json` импортирован из файла `15. Платформа — Practice Map.xlsx`, лист `Practice Map`. Импортировано **30** практик — ровно по числу фактических строк источника. Смысл и тексты не дополнялись.

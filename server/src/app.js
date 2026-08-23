@@ -9,7 +9,7 @@ const DEFAULT_PRODUCTION_ORIGIN = 'https://dianakim-code.github.io';
 const LOCAL_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000'];
 const practicesUrl = new URL('../../data/practices.json', import.meta.url);
 
-function allowedOrigins(env) {
+export function allowedOrigins(env) {
   return new Set([
     DEFAULT_PRODUCTION_ORIGIN,
     env.ALLOWED_ORIGIN,
@@ -45,7 +45,7 @@ async function readJson(request) {
   }
 }
 
-function safeError(error) {
+export function safeError(error) {
   if (error instanceof HttpInputError) return { status: error.status, code: error.code };
   if (error instanceof ProviderError) {
     if (error.code === 'AI_TIMEOUT') return { status: 504, code: 'AI_TIMEOUT' };
@@ -56,6 +56,18 @@ function safeError(error) {
   return { status: 502, code: 'AI_PROVIDER_ERROR' };
 }
 
+export function createAnalyzeProcessor({
+  env = process.env,
+  analyze = analyzeWithProvider,
+  loadPractices = async () => JSON.parse(await readFile(practicesUrl, 'utf8')),
+} = {}) {
+  return async function processAnalyze(payload) {
+    const answers = validateNavigatorPayload(payload);
+    const practices = await loadPractices();
+    return analyze(answers, practices, env);
+  };
+}
+
 export function createRequestHandler({
   env = process.env,
   analyze = analyzeWithProvider,
@@ -63,6 +75,7 @@ export function createRequestHandler({
   createRequestId = randomUUID,
 } = {}) {
   const origins = allowedOrigins(env);
+  const processAnalyze = createAnalyzeProcessor({ env, analyze, loadPractices });
 
   return async function requestHandler(request, response) {
     const requestId = createRequestId();
@@ -89,9 +102,7 @@ export function createRequestHandler({
     }
 
     try {
-      const answers = validateNavigatorPayload(await readJson(request));
-      const practices = await loadPractices();
-      const result = await analyze(answers, practices, env);
+      const result = await processAnalyze(await readJson(request));
       return json(response, 200, result, { origin, requestId });
     } catch (error) {
       const safe = safeError(error);

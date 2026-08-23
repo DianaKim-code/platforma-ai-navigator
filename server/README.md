@@ -2,6 +2,8 @@
 
 This minimal Node.js 20+ service is intentionally separate from the static GitHub Pages frontend. It reads provider credentials only from server environment variables, restricts CORS to the production origin plus explicit localhost origins, applies the deterministic safety gate before the provider, requests structured JSON, and validates the provider response before returning it. Requests, prompts, provider responses, credentials, and authorization headers are not persisted or logged.
 
+Primary current staging target: **Vercel Functions**. Alternative backend target: **Railway / standard Node server**.
+
 Required variables:
 
 - `AI_API_KEY` — provider secret; never expose it to the browser.
@@ -23,6 +25,21 @@ Local endpoints:
 - `POST /analyze` — validated JSON request, safety gate, provider call, structured validation.
 
 The request body limit is 50 KB. Every response includes `X-Request-Id`. Provider calls time out after 25 seconds. Error responses contain stable codes only and never include provider internals or stack traces.
+
+## Vercel staging backend
+
+The repository-root `api/health.js` and `api/analyze.js` files are thin Vercel adapters. They reuse the shared validation, deterministic safety, provider, schema, error, and Practice Map logic under `server/src`; they do not start the persistent listener in `server/src/index.js`. The minimal root `vercel.json` gives only `api/analyze.js` a 30-second maximum duration so the existing 25-second provider timeout can return a controlled response.
+
+1. Import the GitHub repository into Vercel.
+2. Set **Root Directory** to the repository root and use Framework Preset **Other**.
+3. Keep **Production Branch** set to `main`.
+4. Under **Project → Settings → Environment Variables → Preview**, configure `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`, and `ALLOWED_ORIGIN`. Do not add their values to source control. Do not add Production-scoped values during this staging step.
+5. Push `feature/mvp-v3-ai-brain` only.
+6. Open the resulting Preview Deployment for that branch.
+7. Check `GET https://<preview-domain>/api/health`.
+8. Check `POST https://<preview-domain>/api/analyze`, starting with a deterministic safety payload that does not call the provider. Run a normal provider request only after the Preview variables are configured.
+
+Without `AI_API_KEY`, health and deterministic safety requests still work; a normal analyze request returns a controlled `503`. Do not run `vercel --prod`, change the production branch, or connect this endpoint to production v2 without separate approval.
 
 ## Railway staging deploy
 
