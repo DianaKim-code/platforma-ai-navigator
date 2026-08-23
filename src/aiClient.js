@@ -1,6 +1,9 @@
 import { evaluateSafety } from './safety.js';
 import { fallbackResult, validateAnalysisResponse } from './schema.js';
 import { practiceIds, selectPractice } from './practiceMap.js';
+import { hasSufficientData } from './dataSufficiency.js';
+
+export { hasSufficientData } from './dataSufficiency.js';
 
 export const AI_MODES = Object.freeze({ MOCK: 'mock', LIVE: 'live' });
 
@@ -50,18 +53,6 @@ export function resolveMockRoute(answers) {
   if ((answers.triedBefore || []).length >= 2 && answers.clarity === 'priority_defined') return 'R4';
   if (answers.clarity === 'priority_unclear' || includes(answers.barrier, 'с чего начать') || includes(answers.barrier, 'слишком много вариантов')) return 'R1';
   return 'R4';
-}
-
-export function hasSufficientData(answers) {
-  const signals = [
-    answers.domain?.length,
-    answers.barrier,
-    answers.duration && answers.duration !== 'Мне трудно определить',
-    answers.lifeImpact?.length,
-    answers.desiredResult,
-    answers.resource?.length,
-  ].filter(Boolean).length;
-  return signals >= 3 && (answers.domain?.length || answers.desiredResult || answers.barrier);
 }
 
 function factList(answers) {

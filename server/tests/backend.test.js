@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { analyzeWithProvider } from '../src/analyze.js';
 import { createRequestHandler } from '../src/app.js';
+import { validateAnalysisResponse } from '../../src/schema.js';
 
 const practices = JSON.parse(await readFile(new URL('../../data/practices.json', import.meta.url), 'utf8'));
 const allowedOrigin = 'http://127.0.0.1:8000';
@@ -45,6 +46,44 @@ function validResult(overrides = {}) {
     disclaimer: 'Это рабочее предположение, а не диагноз.',
     ...overrides,
   };
+}
+
+function providerResult(result, onCall = () => {}) {
+  return async () => {
+    onCall();
+    return {
+      ok: true,
+      async json() {
+        return { choices: [{ message: { content: JSON.stringify(result) } }] };
+      },
+    };
+  };
+}
+
+function analyzeResult(answers, result, onCall = () => {}) {
+  return analyzeWithProvider(
+    answers,
+    practices,
+    { AI_API_KEY: 'test-secret', AI_MODEL: 'test-model' },
+    providerResult(result, onCall),
+    100,
+  );
+}
+
+function userFacingProse(result) {
+  return [
+    result.title,
+    result.reflection,
+    ...(result.observedFacts || []),
+    result.workingHypothesis,
+    result.requestDraft,
+    result.practiceReason,
+    result.nextStep,
+    result.practice?.text,
+    result.practice?.nextStep,
+    result.humanSupport?.reason,
+    result.disclaimer,
+  ].filter(Boolean).join(' ');
 }
 
 async function withServer(options, run) {
@@ -179,4 +218,116 @@ test('provider HTTP failures are sanitized', async () => {
     assert.deepEqual(JSON.parse(text), { error: 'AI_PROVIDER_ERROR' });
     assert.doesNotMatch(text, /private-test-secret|401|stack/iu);
   });
+});
+
+test('LIVE/T14 insufficient data bypasses provider', async () => {
+  let providerCalls = 0;
+  const analyze = (answers, map, env) => analyzeWithProvider(
+    answers,
+    map,
+    env,
+    providerResult(validResult(), () => { providerCalls += 1; }),
+    100,
+  );
+  await withServer({ analyze, env: {} }, async (baseUrl) => {
+    const response = await post(baseUrl, JSON.stringify(payload({
+      domain: [],
+      pattern: 'Пока трудно сказать',
+      duration: 'Мне трудно определить',
+      lifeImpact: [],
+      barrier: '',
+      desiredResult: '',
+      resource: [],
+      resourceLevel: 'Мне трудно определить',
+    })));
+    const result = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(providerCalls, 0);
+    assert.equal(result.status, 'insufficient_data');
+    assert.equal(result.route, null);
+    assert.equal(result.practiceId, null);
+    assert.equal(validateAnalysisResponse(result, new Set(practices.map(({ id }) => id))).ok, true);
+  });
+});
+
+test('T15 Practice text comes from Practice Map', async () => {
+  const answers = payload();
+  const selected = practices.find(({ id }) => id === 'PM-OP-02');
+  const result = await analyzeResult(answers, validResult({
+    nextStep: 'Чужая инструкция от provider на 90 минут.',
+  }));
+  assert.equal(result.practice.text, selected.text);
+  assert.equal(result.practice.nextStep, selected.nextStep);
+  assert.equal(result.nextStep, selected.nextStep);
+  assert.doesNotMatch(userFacingProse(result), /90 минут/u);
+});
+
+test('T16 Practice duration comes from Practice Map', async () => {
+  const answers = payload();
+  const selected = practices.find(({ id }) => id === 'PM-OP-02');
+  const result = await analyzeResult(answers, validResult({
+    nextStep: 'Выполняйте практику 30 минут.',
+  }));
+  assert.equal(result.practice.duration, selected.duration);
+  assert.equal(result.practice.level, selected.level);
+  assert.doesNotMatch(userFacingProse(result), /30 минут/u);
+});
+
+test('T17 Low resource cannot produce non-Micro practice', async () => {
+  const answers = payload({
+    resourceLevel: 'Сейчас сил почти нет',
+    barrier: 'Не хватило сил или энергии',
+    need: 'Готова к глубокой работе',
+  });
+  const result = await analyzeResult(answers, validResult({
+    route: 'R2',
+    practiceId: 'PM-CH-02',
+    nextStep: 'Выполните расширенную практику.',
+  }));
+  assert.equal(result.route, 'R2');
+  assert.equal(result.practice.level, 'Micro');
+  assert.equal(result.practiceId, result.practice.id);
+  assert.equal(result.nextStep, result.practice.nextStep);
+});
+
+test('T18 Unsupported clinical wording is sanitized', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    reflection: 'Возможны симптомы и ухудшение состояния. По ответам уже видна точка начала.',
+    humanSupport: {
+      recommended: false,
+      reason: 'При симптомах тревоги и депрессивных ощущениях обратитесь за помощью.',
+      urgency: 'optional',
+    },
+    disclaimer: 'При ухудшении психического состояния обратитесь за лечением.',
+  }));
+  assert.doesNotMatch(
+    userFacingProse(result),
+    /тревог|депресс|симптом|ухудшен\w* состояния|психическ\w* состояния|травм/iu,
+  );
+});
+
+test('T19 Technical wording «пользователь/клиент» does not reach user-facing fields', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    workingHypothesis: 'Предположение: пользователь пока ищет первый шаг.',
+    practiceReason: 'Практика подходит этому клиенту.',
+    humanSupport: {
+      recommended: false,
+      reason: 'Клиент может обратиться к специалисту позже.',
+      urgency: 'optional',
+    },
+  }));
+  assert.doesNotMatch(userFacingProse(result), /пользовател|клиент|респондент|субъект|кейс/iu);
+});
+
+test('T20 Route codes do not appear in user-facing prose', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    reflection: 'Маршрут R1 соответствует текущим ответам. По ответам уже видна точка начала.',
+    practiceReason: 'Практика выбрана для R1.',
+    nextStep: 'Следуйте маршруту R1.',
+  }));
+  assert.equal(result.route, 'R1');
+  assert.doesNotMatch(userFacingProse(result), /\bR[1-4]\b/u);
 });

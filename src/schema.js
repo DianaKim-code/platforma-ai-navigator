@@ -2,6 +2,7 @@ export const VALID_STATUSES = new Set(['ok', 'insufficient_data', 'safety_stop']
 export const VALID_ROUTES = new Set(['R1', 'R2', 'R3', 'R4', null]);
 export const VALID_CONFIDENCE = new Set(['low', 'medium', 'high']);
 export const VALID_URGENCY = new Set(['optional', 'useful', 'recommended', 'urgent']);
+export const VALID_PRACTICE_LEVELS = new Set(['Micro', 'Short', 'Extended']);
 
 const FORBIDDEN_PHRASES = [
   /у вас (?:травма|депрессия|тревожное расстройство)/iu,
@@ -55,6 +56,19 @@ export function validateAnalysisResponse(value, knownPracticeIds = new Set()) {
     if (!VALID_URGENCY.has(value.humanSupport.urgency)) errors.push('invalid_urgency');
   }
   if (value.practiceId !== null && !knownPracticeIds.has(value.practiceId)) errors.push('unknown_practice_id');
+  if (value.practice !== undefined) {
+    if (value.practice === null) {
+      if (value.practiceId !== null) errors.push('missing_practice_metadata');
+    } else if (typeof value.practice !== 'object' || Array.isArray(value.practice)) {
+      errors.push('invalid_practice_metadata');
+    } else {
+      if (value.practice.id !== value.practiceId) errors.push('practice_metadata_id_mismatch');
+      if (!VALID_PRACTICE_LEVELS.has(value.practice.level)) errors.push('invalid_practice_level');
+      for (const field of ['duration', 'text', 'nextStep']) {
+        if (!isText(value.practice[field])) errors.push(`invalid_practice_${field}`);
+      }
+    }
+  }
   if (value.status !== 'ok' && value.route !== null) errors.push('route_requires_ok_status');
 
   const narrative = [value.reflection, value.workingHypothesis, value.requestDraft, value.practiceReason, value.nextStep].join(' ');
