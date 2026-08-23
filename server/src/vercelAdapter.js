@@ -5,7 +5,7 @@ import {
   createAnalyzeProcessor,
   safeError,
 } from './app.js';
-import { HttpInputError } from './errors.js';
+import { HttpInputError, ProviderError } from './errors.js';
 
 function writeJson(response, status, body, { origin = '', requestId = '', allow = '' } = {}) {
   response.statusCode = status;
@@ -48,6 +48,7 @@ export function parseVercelJsonBody(request) {
 export function createVercelAnalyzeHandler({
   env = process.env,
   createRequestId = randomUUID,
+  logger = console,
   ...processorOptions
 } = {}) {
   const origins = allowedOrigins(env);
@@ -82,6 +83,16 @@ export function createVercelAnalyzeHandler({
       const result = await processAnalyze(parseVercelJsonBody(request));
       return writeJson(response, 200, result, { origin, requestId });
     } catch (error) {
+      if (error instanceof ProviderError && error.diagnostics.safeCategory) {
+        logger.warn('AI_PROVIDER_DIAGNOSTIC', {
+          requestId,
+          upstreamStatus: error.diagnostics.upstreamStatus,
+          category: error.diagnostics.safeCategory,
+          ...(error.diagnostics.upstreamCode
+            ? { upstreamCode: error.diagnostics.upstreamCode }
+            : {}),
+        });
+      }
       const safe = safeError(error);
       return writeJson(response, safe.status, { error: safe.code }, { origin, requestId });
     }

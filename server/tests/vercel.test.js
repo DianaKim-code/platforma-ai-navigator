@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { analyzeWithProvider } from '../src/analyze.js';
+import { analyzeWithProvider, classifyProviderHttpStatus } from '../src/analyze.js';
 import {
   createVercelAnalyzeHandler,
   createVercelHealthHandler,
@@ -170,4 +170,67 @@ test('V08 parsed oversized body preserves 50 KB limit', async () => {
   })), response);
   assert.equal(response.statusCode, 413);
   assert.deepEqual(response.json(), { error: 'PAYLOAD_TOO_LARGE' });
+});
+
+test('V09 upstream status categories are deterministic', () => {
+  const cases = [
+    [401, 'AI_AUTH_ERROR'],
+    [403, 'AI_AUTH_ERROR'],
+    [429, 'AI_QUOTA_OR_RATE_LIMIT'],
+    [404, 'AI_MODEL_OR_ENDPOINT_NOT_FOUND'],
+    [400, 'AI_REQUEST_REJECTED'],
+    [422, 'AI_REQUEST_REJECTED'],
+    [500, 'AI_PROVIDER_UNAVAILABLE'],
+    [503, 'AI_PROVIDER_UNAVAILABLE'],
+    [418, 'AI_PROVIDER_ERROR'],
+  ];
+  for (const [status, category] of cases) {
+    assert.equal(classifyProviderHttpStatus(status), category);
+  }
+});
+
+test('V10 provider diagnostics expose only safe status, category and machine code', async () => {
+  const secret = 'private-provider-secret';
+  const rawMessage = 'raw upstream message must stay private';
+  const providerFetch = async () => ({
+    ok: false,
+    status: 401,
+    async json() {
+      return {
+        error: { code: 'invalid_api_key', message: rawMessage },
+        authorization: 'Bearer private-authorization-header',
+        prompt: 'private prompt content',
+        requestPayload: payload({ openConcern: 'private synthetic input' }),
+      };
+    },
+  });
+  const analyze = (answers, map, env) => analyzeWithProvider(
+    answers,
+    map,
+    env,
+    providerFetch,
+    100,
+  );
+  const warnings = [];
+  const response = new MockResponse();
+  await analyzeHandler({
+    analyze,
+    env: { AI_API_KEY: secret, AI_MODEL: 'test-model' },
+    logger: { warn: (...args) => warnings.push(args) },
+  })(request('POST', payload()), response);
+
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.json(), { error: 'AI_PROVIDER_ERROR' });
+  const diagnostic = JSON.stringify(warnings);
+  assert.match(diagnostic, /401/u);
+  assert.match(diagnostic, /AI_AUTH_ERROR/u);
+  assert.match(diagnostic, /invalid_api_key/u);
+  assert.doesNotMatch(
+    diagnostic,
+    /private-provider-secret|private-authorization-header|private prompt content|raw upstream message|private synthetic input|vercel-test|stack/iu,
+  );
+  assert.doesNotMatch(
+    response.body,
+    /private-provider-secret|raw upstream message|invalid_api_key|401|stack/iu,
+  );
 });

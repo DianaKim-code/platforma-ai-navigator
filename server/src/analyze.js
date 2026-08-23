@@ -4,6 +4,26 @@ import { evaluateSafety } from '../../src/safety.js';
 import { ProviderError } from './errors.js';
 
 const PROVIDER_TIMEOUT_MS = 25_000;
+const SAFE_UPSTREAM_CODE = /^[a-zA-Z0-9_.-]{1,100}$/u;
+
+export function classifyProviderHttpStatus(status) {
+  if (status === 401 || status === 403) return 'AI_AUTH_ERROR';
+  if (status === 429) return 'AI_QUOTA_OR_RATE_LIMIT';
+  if (status === 404) return 'AI_MODEL_OR_ENDPOINT_NOT_FOUND';
+  if (status === 400 || status === 422) return 'AI_REQUEST_REJECTED';
+  if (status >= 500 && status <= 599) return 'AI_PROVIDER_UNAVAILABLE';
+  return 'AI_PROVIDER_ERROR';
+}
+
+async function safeUpstreamErrorCode(response) {
+  if (typeof response?.json !== 'function') return '';
+  try {
+    const code = (await response.json())?.error?.code;
+    return typeof code === 'string' && SAFE_UPSTREAM_CODE.test(code) ? code : '';
+  } catch {
+    return '';
+  }
+}
 
 function providerConfig(env = process.env) {
   return {
@@ -55,7 +75,14 @@ export async function analyzeWithProvider(
     } catch (error) {
       throw new ProviderError(error.name === 'AbortError' ? 'AI_TIMEOUT' : 'AI_PROVIDER_ERROR');
     }
-    if (!response.ok) throw new ProviderError('AI_PROVIDER_ERROR');
+    if (!response.ok) {
+      const upstreamStatus = Number(response.status);
+      throw new ProviderError('AI_PROVIDER_ERROR', {
+        upstreamStatus,
+        safeCategory: classifyProviderHttpStatus(upstreamStatus),
+        upstreamCode: await safeUpstreamErrorCode(response),
+      });
+    }
 
     let body;
     try {
