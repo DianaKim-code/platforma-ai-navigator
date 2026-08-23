@@ -234,3 +234,83 @@ test('V10 provider diagnostics expose only safe status, category and machine cod
     /private-provider-secret|raw upstream message|invalid_api_key|401|stack/iu,
   );
 });
+
+test('T25 invalid-response diagnostics expose stages and safe types only', async () => {
+  const privateValues = [
+    'private-provider-content',
+    'private-request-payload',
+    'private-api-secret',
+    'private-authorization-header',
+  ];
+  const cases = [
+    {
+      stage: 'provider_body_json_parse_failed',
+      fetch: async () => ({ ok: true, async json() { throw new Error(privateValues[0]); } }),
+    },
+    {
+      stage: 'provider_content_missing',
+      fetch: async () => ({ ok: true, async json() { return { choices: [] }; } }),
+    },
+    {
+      stage: 'provider_content_json_parse_failed',
+      fetch: async () => ({
+        ok: true,
+        async json() { return { choices: [{ message: { content: '{private malformed content' } }] }; },
+      }),
+    },
+    {
+      stage: 'schema_validation_failed',
+      fetch: async () => ({
+        ok: true,
+        async json() {
+          return {
+            choices: [{ message: { content: JSON.stringify({
+              ...validResult(),
+              observedFacts: privateValues[0],
+              reflection: privateValues[1],
+            }) } }],
+          };
+        },
+      }),
+    },
+    {
+      stage: 'practice_validation_failed',
+      fetch: async () => ({
+        ok: true,
+        async json() {
+          return {
+            choices: [{ message: { content: JSON.stringify({
+              ...validResult(),
+              practiceId: 'UNKNOWN-PRACTICE',
+            }) } }],
+          };
+        },
+      }),
+    },
+  ];
+
+  for (const diagnosticCase of cases) {
+    const warnings = [];
+    const analyze = (answers, map, env) => analyzeWithProvider(
+      answers,
+      map,
+      env,
+      diagnosticCase.fetch,
+      100,
+    );
+    const response = new MockResponse();
+    await analyzeHandler({
+      analyze,
+      env: { AI_API_KEY: privateValues[2], AI_MODEL: 'test-model' },
+      logger: { warn: (...args) => warnings.push(args) },
+    })(request('POST', payload({ openConcern: privateValues[1] })), response);
+
+    assert.equal(response.statusCode, 502);
+    assert.deepEqual(response.json(), { error: 'AI_INVALID_RESPONSE' });
+    const diagnostic = JSON.stringify(warnings);
+    assert.match(diagnostic, new RegExp(diagnosticCase.stage, 'u'));
+    for (const privateValue of privateValues) assert.doesNotMatch(diagnostic, new RegExp(privateValue, 'u'));
+    assert.doesNotMatch(diagnostic, /authorization|prompt|messages|answers|stack/iu);
+    assert.doesNotMatch(response.body, /private|UNKNOWN-PRACTICE|stack/iu);
+  }
+});

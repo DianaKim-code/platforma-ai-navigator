@@ -252,10 +252,10 @@ test('LIVE/T14 insufficient data bypasses provider', async () => {
 
 test('T15 Practice text comes from Practice Map', async () => {
   const answers = payload();
-  const selected = practices.find(({ id }) => id === 'PM-OP-02');
   const result = await analyzeResult(answers, validResult({
     nextStep: 'Чужая инструкция от provider на 90 минут.',
   }));
+  const selected = practices.find(({ id }) => id === result.practiceId);
   assert.equal(result.practice.text, selected.text);
   assert.equal(result.practice.nextStep, selected.nextStep);
   assert.equal(result.nextStep, selected.nextStep);
@@ -264,10 +264,10 @@ test('T15 Practice text comes from Practice Map', async () => {
 
 test('T16 Practice duration comes from Practice Map', async () => {
   const answers = payload();
-  const selected = practices.find(({ id }) => id === 'PM-OP-02');
   const result = await analyzeResult(answers, validResult({
     nextStep: 'Выполняйте практику 30 минут.',
   }));
+  const selected = practices.find(({ id }) => id === result.practiceId);
   assert.equal(result.practice.duration, selected.duration);
   assert.equal(result.practice.level, selected.level);
   assert.doesNotMatch(userFacingProse(result), /30 минут/u);
@@ -330,4 +330,62 @@ test('T20 Route codes do not appear in user-facing prose', async () => {
   }));
   assert.equal(result.route, 'R1');
   assert.doesNotMatch(userFacingProse(result), /\bR[1-4]\b/u);
+});
+
+test('T21 Practice does not promise a guaranteed outcome', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    reflection: 'Эта практика восстановит ресурс и обязательно поможет.',
+    workingHypothesis: 'Предположение: практика может вернуть энергию и привести к ясности.',
+  }));
+  assert.doesNotMatch(
+    userFacingProse(result),
+    /обязательно поможет|восстановит|вернёт|может вернуть|приведёт к ясности/iu,
+  );
+});
+
+test('T22 Reflection does not add internal states absent from input', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    reflection: 'Вы ощущаете напряжение и вам трудно собрать мысли.',
+  }));
+  assert.doesNotMatch(result.reflection, /напряжен|трудно собрать мысли/iu);
+  assert.match(result.reflection, /по вашим ответам|в теме/iu);
+});
+
+test('T23 ObservedFacts contain only deterministic grounded information', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    observedFacts: ['Вы испытываете скрытый страх.', 'Вы не можете собраться.'],
+  }));
+  assert.deepEqual(result.observedFacts, [
+    'Вы указали сферу: Работа или профессия.',
+    'Сейчас движение останавливается на шаге: Не знаю, с чего начать.',
+    'Желаемый результат: Работа или профессия.',
+    'Доступный ресурс: Есть силы на один небольшой шаг.',
+  ]);
+});
+
+test('T24 Deterministic route cannot be overridden by provider response', async () => {
+  const answers = payload();
+  let providerRequest;
+  const providerFetch = async (_url, options) => {
+    providerRequest = JSON.parse(options.body);
+    return providerResult(validResult({ route: 'R3' }))();
+  };
+  const result = await analyzeWithProvider(
+    answers,
+    practices,
+    { AI_API_KEY: 'test-secret', AI_MODEL: 'test-model' },
+    providerFetch,
+    100,
+  );
+  assert.equal(providerRequest.temperature, 0.2);
+  assert.equal('top_p' in providerRequest, false);
+  assert.equal('seed' in providerRequest, false);
+  assert.deepEqual(providerRequest.response_format, { type: 'json_object' });
+  assert.equal(JSON.parse(providerRequest.messages[1].content).backendDecision.route, 'R1');
+  assert.equal(result.route, 'R1');
+  assert.equal(result.practice.id, result.practiceId);
+  assert.ok(practices.find(({ id }) => id === result.practiceId).routes.includes('R1'));
 });

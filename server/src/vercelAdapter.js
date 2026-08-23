@@ -93,6 +93,15 @@ export function createVercelAnalyzeHandler({
             : {}),
         });
       }
+      if (error instanceof ProviderError && error.code === 'AI_INVALID_RESPONSE' && error.diagnostics.stage) {
+        logger.warn('AI_INVALID_RESPONSE_DIAGNOSTIC', {
+          requestId,
+          stage: error.diagnostics.stage,
+          ...(error.diagnostics.validationErrors
+            ? { validationErrors: error.diagnostics.validationErrors }
+            : {}),
+        });
+      }
       const safe = safeError(error);
       return writeJson(response, safe.status, { error: safe.code }, { origin, requestId });
     }

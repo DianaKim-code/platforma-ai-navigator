@@ -26,6 +26,8 @@ Local endpoints:
 
 The request body limit is 50 KB. Every response includes `X-Request-Id`. Provider calls time out after 25 seconds. Error responses contain stable codes only and never include provider internals or stack traces.
 
+Provider sampling uses `temperature: 0.2`; `top_p` and `seed` are intentionally unset. The response format remains JSON-object mode. Route and Practice selection are deterministic backend decisions, while the provider is limited to synthesis and explanation. Invalid-response diagnostics log only a safe failure stage and validator metadata (code, field, expected type, actual type), never response content or request data.
+
 ## Vercel staging backend
 
 The repository-root `api/health.js` and `api/analyze.js` files are thin Vercel adapters. They reuse the shared validation, deterministic safety, provider, schema, error, and Practice Map logic under `server/src`; they do not start the persistent listener in `server/src/index.js`. The minimal root `vercel.json` gives only `api/analyze.js` a 30-second maximum duration so the existing 25-second provider timeout can return a controlled response.

@@ -2,8 +2,10 @@ import { evaluateSafety } from './safety.js';
 import { fallbackResult, validateAnalysisResponse } from './schema.js';
 import { practiceIds, selectPractice } from './practiceMap.js';
 import { hasSufficientData } from './dataSufficiency.js';
+import { resolveNavigatorRoute } from './routing.js';
 
 export { hasSufficientData } from './dataSufficiency.js';
+export { resolveNavigatorRoute as resolveMockRoute } from './routing.js';
 
 export const AI_MODES = Object.freeze({ MOCK: 'mock', LIVE: 'live' });
 
@@ -45,14 +47,6 @@ export function inferResourceLevel(raw = {}) {
   if (raw.obstacle === 'Не хватило сил или энергии' || (raw.supports || []).includes('Пока не вижу опоры')) return 'Сейчас сил почти нет';
   if ((raw.supports || []).length >= 2) return 'Есть ресурс для небольших действий';
   return 'Ресурс пока неясен';
-}
-
-export function resolveMockRoute(answers) {
-  if (answers.resourceLevel === 'Сейчас сил почти нет') return 'R2';
-  if (includes(answers.barrier, 'другого человека') || includes(answers.influence, 'другого человека')) return 'R3';
-  if ((answers.triedBefore || []).length >= 2 && answers.clarity === 'priority_defined') return 'R4';
-  if (answers.clarity === 'priority_unclear' || includes(answers.barrier, 'с чего начать') || includes(answers.barrier, 'слишком много вариантов')) return 'R1';
-  return 'R4';
 }
 
 function factList(answers) {
@@ -103,7 +97,7 @@ export function createMockAnalysis(answers, practices) {
   }
   if (!hasSufficientData(answers)) return fallbackResult('По вашим ответам уже видно, что необходимость перемен ощущается, но данных пока недостаточно, чтобы уверенно выбрать одну точку начала.');
 
-  const route = resolveMockRoute(answers);
+  const route = resolveNavigatorRoute(answers);
   const practice = selectPractice(practices, {
     route,
     resource: answers.resourceLevel,

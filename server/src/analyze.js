@@ -2,16 +2,20 @@ import { SYSTEM_PROMPT, buildPrompt } from './prompts.js';
 import { assertAnalysis } from './schema.js';
 import { evaluateSafety } from '../../src/safety.js';
 import { hasSufficientData } from '../../src/dataSufficiency.js';
-import { selectPractice, validatePracticeId } from '../../src/practiceMap.js';
+import { selectPractice } from '../../src/practiceMap.js';
+import { resolveNavigatorRoute } from '../../src/routing.js';
+import { validateAnalysisResponse } from '../../src/schema.js';
 import { ProviderError } from './errors.js';
 
 const PROVIDER_TIMEOUT_MS = 25_000;
+export const PROVIDER_TEMPERATURE = 0.2;
 const SAFE_UPSTREAM_CODE = /^[a-zA-Z0-9_.-]{1,100}$/u;
 export const ORDINARY_DISCLAIMER = 'Это рабочее предположение, а не диагноз. Вы можете проверить его на своём опыте или обсудить с подходящим специалистом.';
 export const INSUFFICIENT_DATA_DISCLAIMER = 'Это предварительное отражение по имеющимся ответам. Один уточняющий шаг поможет сделать результат точнее.';
 
 const TECHNICAL_PROSE = /(?:пользовател\w*|клиент\w*|респондент\w*|субъект\w*|кейс\w*)/iu;
 const ROUTE_CODE_IN_PROSE = /\bR[1-4]\b/u;
+const UNSUPPORTED_OUTCOME_PROMISE = /(?:обязательно\s+поможет|(?:восстановит|вернёт|снизит|улучшит)\w*|приведёт\s+к|может\s+(?:восстановить|вернуть|снизить|улучшить|привести)\w*)/iu;
 const UNSUPPORTED_CLINICAL_RULES = [
   { output: /тревог\w*/iu, input: /тревог\w*/iu },
   { output: /депресс\w*/iu, input: /депресс\w*/iu },
@@ -22,6 +26,13 @@ const UNSUPPORTED_CLINICAL_RULES = [
   { output: /травм\w*/iu, input: /травм\w*/iu },
   { output: /дискомфорт\w*/iu, input: /дискомфорт\w*/iu },
 ];
+const UNGROUNDED_INTERNAL_STATE_RULES = [
+  { output: /напряжен\w*/iu, input: /напряжен\w*/iu },
+  { output: /трудн\w*\s+собрат\w*\s+мысл\w*/iu, input: /трудн\w*\s+собрат\w*\s+мысл\w*/iu },
+  { output: /мысл\w*\s+разбега\w*/iu, input: /мысл\w*\s+разбега\w*/iu },
+  { output: /страх\w*/iu, input: /страх\w*/iu },
+  { output: /устал\w*/iu, input: /устал\w*/iu },
+];
 
 function answersText(answers) {
   return Object.values(answers)
@@ -31,8 +42,13 @@ function answersText(answers) {
 }
 
 function sentenceIsAllowed(sentence, sourceText) {
-  if (TECHNICAL_PROSE.test(sentence) || ROUTE_CODE_IN_PROSE.test(sentence)) return false;
-  return !UNSUPPORTED_CLINICAL_RULES.some(({ output, input }) => output.test(sentence) && !input.test(sourceText));
+  if (
+    TECHNICAL_PROSE.test(sentence)
+    || ROUTE_CODE_IN_PROSE.test(sentence)
+    || UNSUPPORTED_OUTCOME_PROMISE.test(sentence)
+  ) return false;
+  return ![...UNSUPPORTED_CLINICAL_RULES, ...UNGROUNDED_INTERNAL_STATE_RULES]
+    .some(({ output, input }) => output.test(sentence) && !input.test(sourceText));
 }
 
 function sanitizeProse(value, sourceText, fallback = '') {
@@ -99,13 +115,17 @@ export function createInsufficientDataResult(answers = {}) {
   };
 }
 
-function lowResourcePractice(answers, route, practices) {
-  const routedMicroPractices = practices.filter((practice) => (
-    practice.level === 'Micro' && (!route || practice.routes.includes(route))
-  ));
-  const candidates = routedMicroPractices.length
-    ? routedMicroPractices
-    : practices.filter((practice) => practice.level === 'Micro');
+function eligiblePracticesFor(answers, route, practices) {
+  return practices.filter((practice) => {
+    if (!practice.routes.includes(route)) return false;
+    if (answers.resourceLevel === 'Сейчас сил почти нет') return practice.level === 'Micro';
+    if (/небольшой шаг/iu.test(answers.resourceLevel || '')) return practice.level !== 'Extended';
+    return true;
+  });
+}
+
+function canonicalPracticeFor(answers, route, practices) {
+  const candidates = eligiblePracticesFor(answers, route, practices);
   return selectPractice(candidates, {
     route,
     resource: answers.resourceLevel,
@@ -115,27 +135,76 @@ function lowResourcePractice(answers, route, practices) {
   });
 }
 
+function safeType(value) {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
+}
+
+function validationField(code) {
+  const fields = {
+    response_not_object: 'response',
+    invalid_status: 'status',
+    invalid_route: 'route',
+    invalid_confidence: 'confidence',
+    invalid_observed_facts: 'observedFacts',
+    invalid_human_support: 'humanSupport',
+    invalid_human_support_recommended: 'humanSupport.recommended',
+    invalid_human_support_reason: 'humanSupport.reason',
+    invalid_urgency: 'humanSupport.urgency',
+    unknown_practice_id: 'practiceId',
+    missing_practice_metadata: 'practice',
+    invalid_practice_metadata: 'practice',
+    practice_metadata_id_mismatch: 'practice.id',
+    invalid_practice_level: 'practice.level',
+    invalid_practice_duration: 'practice.duration',
+    invalid_practice_text: 'practice.text',
+    invalid_practice_nextStep: 'practice.nextStep',
+    route_requires_ok_status: 'route',
+    unsafe_psychological_claim: 'userFacingProse',
+  };
+  return fields[code] || code.replace(/^invalid_/u, '');
+}
+
+function valueAt(value, path) {
+  return path.split('.').reduce((current, key) => current?.[key], value);
+}
+
+function expectedType(code) {
+  if (code === 'response_not_object') return 'object';
+  if (code === 'invalid_observed_facts') return 'array<string>';
+  if (code === 'invalid_human_support') return 'object';
+  if (code === 'invalid_human_support_recommended') return 'boolean';
+  if (code === 'unknown_practice_id') return 'approved Practice ID or null';
+  if (code === 'route_requires_ok_status') return 'null when status is not ok';
+  if (code === 'unsafe_psychological_claim') return 'policy-compliant text';
+  if (/status|route|confidence|urgency|practice_level/u.test(code)) return 'allowed enum value';
+  if (/practice_metadata/u.test(code)) return 'canonical practice metadata';
+  return 'string';
+}
+
+function safeValidationDetails(value, errors) {
+  return errors.map((code) => {
+    const field = validationField(code);
+    return {
+      code,
+      field,
+      expected: expectedType(code),
+      actual: field === 'userFacingProse' ? 'string' : safeType(valueAt(value, field)),
+    };
+  });
+}
+
+function validationFailureStage(errors) {
+  return errors.some((code) => /practice|unknown_practice_id/u.test(code))
+    ? 'practice_validation_failed'
+    : 'schema_validation_failed';
+}
+
 export function canonicalizeAnalysisResult(result, answers, practices) {
   const sourceText = answersText(answers);
-  if (result.status !== 'ok') {
-    return {
-      ...result,
-      route: null,
-      practiceId: null,
-      practiceReason: '',
-      practice: null,
-      disclaimer: INSUFFICIENT_DATA_DISCLAIMER,
-    };
-  }
-
-  let practice = validatePracticeId(practices, result.practiceId);
-  if (answers.resourceLevel === 'Сейчас сил почти нет' && practice?.level !== 'Micro') {
-    practice = lowResourcePractice(answers, result.route, practices);
-  }
-
-  const observedFacts = result.observedFacts
-    .map((fact) => sanitizeProse(fact, sourceText))
-    .filter(Boolean);
+  const route = resolveNavigatorRoute(answers);
+  const practice = canonicalPracticeFor(answers, route, practices);
   const canonicalPractice = practice ? {
     id: practice.id,
     level: practice.level,
@@ -146,9 +215,11 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
 
   return {
     ...result,
+    status: 'ok',
+    route,
     title: sanitizeProse(result.title, sourceText, 'Предварительное отражение ситуации'),
     reflection: sanitizeProse(result.reflection, sourceText, synthesisFallback(answers)),
-    observedFacts: observedFacts.length ? observedFacts : deterministicObservedFacts(answers),
+    observedFacts: deterministicObservedFacts(answers),
     workingHypothesis: sanitizeProse(
       result.workingHypothesis,
       sourceText,
@@ -160,13 +231,13 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
       'Какой небольшой следующий шаг сейчас наиболее реалистичен?',
     ),
     practiceId: practice?.id || null,
-    practiceReason: practice
+    practiceReason: practice && result.practiceId === practice.id
       ? sanitizeProse(
         result.practiceReason,
         sourceText,
         'Практика выбрана с учётом ваших ответов и доступного ресурса.',
       )
-      : '',
+      : practice ? 'Практика выбрана с учётом ваших ответов, доступного ресурса и того, что сейчас останавливает движение.' : '',
     nextStep: practice
       ? practice.nextStep
       : sanitizeProse(result.nextStep, sourceText, 'Выберите один небольшой проверяемый шаг.'),
@@ -229,6 +300,9 @@ export async function analyzeWithProvider(
   if (!hasSufficientData(answers)) return createInsufficientDataResult(answers);
   const config = providerConfig(env);
   if (!config.apiKey || !config.model) throw new ProviderError('AI_NOT_CONFIGURED');
+  const canonicalRoute = resolveNavigatorRoute(answers);
+  const allowedPractices = eligiblePracticesFor(answers, canonicalRoute, practices);
+  const canonicalPractice = canonicalPracticeFor(answers, canonicalRoute, practices);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -242,10 +316,17 @@ export async function analyzeWithProvider(
         },
         body: JSON.stringify({
           model: config.model,
+          temperature: PROVIDER_TEMPERATURE,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: buildPrompt(answers, practices) },
+            {
+              role: 'user',
+              content: buildPrompt(answers, allowedPractices, {
+                route: canonicalRoute,
+                practiceId: canonicalPractice?.id || null,
+              }),
+            },
           ],
         }),
         signal: controller.signal,
@@ -266,16 +347,26 @@ export async function analyzeWithProvider(
     try {
       body = await response.json();
     } catch {
-      throw new ProviderError('AI_INVALID_RESPONSE');
+      throw new ProviderError('AI_INVALID_RESPONSE', { stage: 'provider_body_json_parse_failed' });
     }
     const content = body.choices?.[0]?.message?.content;
-    if (!content) throw new ProviderError('AI_INVALID_RESPONSE');
-    try {
-      const validated = assertAnalysis(JSON.parse(content), practices);
-      return assertAnalysis(canonicalizeAnalysisResult(validated, answers, practices), practices);
-    } catch {
-      throw new ProviderError('AI_INVALID_RESPONSE');
+    if (typeof content !== 'string' || !content) {
+      throw new ProviderError('AI_INVALID_RESPONSE', { stage: 'provider_content_missing' });
     }
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new ProviderError('AI_INVALID_RESPONSE', { stage: 'provider_content_json_parse_failed' });
+    }
+    const validation = validateAnalysisResponse(parsed, new Set(practices.map(({ id }) => id)));
+    if (!validation.ok) {
+      throw new ProviderError('AI_INVALID_RESPONSE', {
+        stage: validationFailureStage(validation.errors),
+        validationErrors: safeValidationDetails(parsed, validation.errors),
+      });
+    }
+    return assertAnalysis(canonicalizeAnalysisResult(validation.value, answers, practices), practices);
   } finally {
     clearTimeout(timer);
   }
