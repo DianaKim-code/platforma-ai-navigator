@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { analyzeWithProvider } from '../src/analyze.js';
+import { analyzeWithProvider, createInsufficientDataResult } from '../src/analyze.js';
 import { createRequestHandler } from '../src/app.js';
 import { validateAnalysisResponse } from '../../src/schema.js';
 
@@ -401,4 +401,43 @@ test('Backend supplies ordinary human-support flags when provider omits them', a
     recommended: false,
     urgency: 'optional',
   });
+});
+
+test('T26 status=ok adds an approved marker to an unmarked working hypothesis', async () => {
+  const result = await analyzeResult(payload(), validResult({
+    workingHypothesis: 'Сейчас полезнее перевести выбранное направление в один проверяемый шаг.',
+  }));
+  assert.equal(
+    result.workingHypothesis,
+    'Одна из рабочих гипотез — Сейчас полезнее перевести выбранное направление в один проверяемый шаг.',
+  );
+});
+
+test('T27 an approved working-hypothesis marker is not duplicated', async () => {
+  const hypothesis = 'Одна из рабочих гипотез — сейчас полезнее уточнить первый шаг.';
+  const result = await analyzeResult(payload(), validResult({ workingHypothesis: hypothesis }));
+  assert.equal(result.workingHypothesis, hypothesis);
+  assert.equal((result.workingHypothesis.match(/Одна из рабочих гипотез/gu) || []).length, 1);
+});
+
+test('T28 insufficient_data keeps its deterministic neutral hypothesis', () => {
+  const result = createInsufficientDataResult({});
+  assert.equal(result.status, 'insufficient_data');
+  assert.equal(result.workingHypothesis, 'Данных для рабочей гипотезы пока недостаточно.');
+  assert.doesNotMatch(result.workingHypothesis, /^Одна из рабочих гипотез —/u);
+});
+
+test('T29 hypothesis enforcement does not change observedFacts', async () => {
+  const answers = payload();
+  const result = await analyzeResult(answers, validResult({
+    observedFacts: ['Provider fact must not be used.'],
+    workingHypothesis: 'Сейчас полезнее уточнить первый шаг.',
+  }));
+  assert.deepEqual(result.observedFacts, [
+    'Вы указали сферу: Работа или профессия.',
+    'Сейчас движение останавливается на шаге: Не знаю, с чего начать.',
+    'Желаемый результат: Работа или профессия.',
+    'Доступный ресурс: Есть силы на один небольшой шаг.',
+  ]);
+  assert.match(result.workingHypothesis, /^Одна из рабочих гипотез —/u);
 });

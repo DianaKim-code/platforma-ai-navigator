@@ -16,6 +16,8 @@ export const INSUFFICIENT_DATA_DISCLAIMER = 'Это предварительно
 const TECHNICAL_PROSE = /(?:пользовател\w*|клиент\w*|респондент\w*|субъект\w*|кейс\w*)/iu;
 const ROUTE_CODE_IN_PROSE = /\bR[1-4]\b/u;
 const UNSUPPORTED_OUTCOME_PROMISE = /(?:обязательно\s+поможет|(?:восстановит|вернёт|снизит|улучшит)\w*|приведёт\s+к|может\s+(?:восстановить|вернуть|снизить|улучшить|привести)\w*)/iu;
+const APPROVED_HYPOTHESIS_MARKER = /^(?:одна из рабочих гипотез\s+—|по вашим ответам можно предположить,\s+что|возможно,\s+сейчас|похоже,\s+сейчас)/iu;
+const DEFAULT_HYPOTHESIS_PREFIX = 'Одна из рабочих гипотез —';
 const UNSUPPORTED_CLINICAL_RULES = [
   { output: /тревог\w*/iu, input: /тревог\w*/iu },
   { output: /депресс\w*/iu, input: /депресс\w*/iu },
@@ -58,6 +60,12 @@ function sanitizeProse(value, sourceText, fallback = '') {
     .join(' ')
     .trim();
   return clean || fallback;
+}
+
+export function ensureHypothesisMarker(value) {
+  const text = String(value || '').trim();
+  if (!text || APPROVED_HYPOTHESIS_MARKER.test(text)) return text;
+  return `${DEFAULT_HYPOTHESIS_PREFIX} ${text}`;
 }
 
 function deterministicObservedFacts(answers) {
@@ -227,6 +235,11 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
     text: practice.text,
     nextStep: practice.nextStep,
   } : null;
+  const workingHypothesis = sanitizeProse(
+    result.workingHypothesis,
+    sourceText,
+    'Ближайший шаг стоит проверить на вашем опыте.',
+  );
 
   return {
     ...result,
@@ -235,11 +248,7 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
     title: sanitizeProse(result.title, sourceText, 'Предварительное отражение ситуации'),
     reflection: sanitizeProse(result.reflection, sourceText, synthesisFallback(answers)),
     observedFacts: deterministicObservedFacts(answers),
-    workingHypothesis: sanitizeProse(
-      result.workingHypothesis,
-      sourceText,
-      'Рабочее предположение пока стоит проверить на вашем опыте.',
-    ),
+    workingHypothesis: ensureHypothesisMarker(workingHypothesis),
     requestDraft: sanitizeProse(
       result.requestDraft,
       sourceText,

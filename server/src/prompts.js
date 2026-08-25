@@ -18,7 +18,11 @@ backendDecision.route и backendDecision.practiceId; не выбирай и не
 Reflection должен объединять минимум два сигнала и не повторять ответы по очереди.
 ObservedFacts предназначен для отдельных фактов. Не начинай reflection последовательностью
 «вы отметили», «вы выбрали», «вы указали».
-Working hypothesis всегда маркируй как предположение.
+Для status=ok всегда начинай workingHypothesis одной из формулировок:
+«Одна из рабочих гипотез — ...» (предпочтительно),
+«По вашим ответам можно предположить, что ...», «Возможно, сейчас ...» или «Похоже, сейчас ...».
+Не начинай workingHypothesis с «Причина в том, что...», «Вы не действуете потому, что...»,
+«На самом деле...» или «У вас...». Не формулируй гипотезу как установленный факт.
 Backend самостоятельно проверяет достаточность данных, подставляет утверждённые инструкции
 Practice Map, humanSupport.recommended, humanSupport.urgency и disclaimer. Не придумывай текст
 практики, её длительность или альтернативный шаг.
@@ -43,7 +47,7 @@ export function buildPrompt(answers, practices, backendDecision = {}) {
       title: 'string',
       reflection: 'string',
       observedFacts: ['2–4 strings containing only user answers'],
-      workingHypothesis: 'string',
+      workingHypothesis: 'string with an explicit approved hypothesis marker when status is ok',
       confidence: 'low | medium | high',
       requestDraft: 'string',
       practiceId: 'approved ID | null',

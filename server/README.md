@@ -28,6 +28,8 @@ The request body limit is 50 KB. Every response includes `X-Request-Id`. Provide
 
 Provider sampling uses `temperature: 0.2`; `top_p` and `seed` are intentionally unset. The response format remains JSON-object mode. Route and Practice selection are deterministic backend decisions, while the provider is limited to synthesis and explanation. For ordinary (non-safety) analysis, the backend also fixes human-support flags to `recommended: false` and `urgency: optional`; the provider only drafts the explanatory reason. Invalid-response diagnostics log only a safe failure stage and validator metadata (code, field, expected type, actual type), never response content or request data.
 
+For every ordinary `status: ok` result, the backend deterministically ensures that `workingHypothesis` starts with an approved hypothesis marker. It adds only the neutral prefix `Одна из рабочих гипотез —` when the provider omitted a marker; insufficient-data and safety-stop results are unchanged.
+
 ## Vercel staging backend
 
 The repository-root `api/health.js` and `api/analyze.js` files are thin Vercel adapters. They reuse the shared validation, deterministic safety, provider, schema, error, and Practice Map logic under `server/src`; they do not start the persistent listener in `server/src/index.js`. The minimal root `vercel.json` gives only `api/analyze.js` a 30-second maximum duration so the existing 25-second provider timeout can return a controlled response.
