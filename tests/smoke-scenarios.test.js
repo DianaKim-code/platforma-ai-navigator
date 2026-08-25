@@ -177,3 +177,15 @@ test('T31 marked staging analytics are explicit and normal staging stays buffere
     { event: 'feedback_submitted', comment: 'TEST_EVENT: structured', testEvent: true },
   );
 });
+
+test('T32 practice renderer exposes approved level and duration', async () => {
+  const source = await readFile(new URL('../src/resultRenderer.js', import.meta.url), 'utf8');
+  assert.match(source, /Уровень:\s*\$\{practice\.level\}\s*·\s*Длительность:\s*\$\{practice\.duration\}/u);
+  assert.match(source, /metadata\.className\s*=\s*'practice-meta'/u);
+});
+
+test('T33 result and safety states are announced accessibly', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /id="result"[^>]*role="region"[^>]*aria-live="polite"[^>]*aria-labelledby="resultTitle"/u);
+  assert.match(html, /id="safety"[^>]*role="alert"[^>]*aria-live="assertive"/u);
+});

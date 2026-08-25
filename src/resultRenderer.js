@@ -39,12 +39,15 @@ export function renderAiResult(root, titleElement, result, practice) {
     details.id = 'practiceDetails';
     const summary = document.createElement('summary');
     summary.textContent = 'Открыть выбранную практику';
+    const metadata = document.createElement('p');
+    metadata.className = 'practice-meta';
+    metadata.textContent = `Уровень: ${practice.level} · Длительность: ${practice.duration}`;
     const practiceText = document.createElement('p');
     practiceText.textContent = practice.text;
     const reason = document.createElement('p');
     reason.className = 'hypothesis-marker';
     reason.textContent = result.practiceReason;
-    details.append(summary, practiceText, reason);
+    details.append(summary, metadata, practiceText, reason);
     step.appendChild(details);
   }
   root.appendChild(step);

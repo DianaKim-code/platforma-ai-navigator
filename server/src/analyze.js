@@ -64,7 +64,9 @@ function sanitizeProse(value, sourceText, fallback = '') {
 
 export function ensureHypothesisMarker(value) {
   const text = String(value || '').trim();
-  if (!text || APPROVED_HYPOTHESIS_MARKER.test(text)) return text;
+  if (!text) return text;
+  const withoutLeadingDecoration = text.replace(/^(?:✅|☑️|✔️)\s*/u, '');
+  if (APPROVED_HYPOTHESIS_MARKER.test(withoutLeadingDecoration)) return withoutLeadingDecoration;
   return `${DEFAULT_HYPOTHESIS_PREFIX} ${text}`;
 }
 

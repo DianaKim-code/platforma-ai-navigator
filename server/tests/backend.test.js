@@ -418,6 +418,12 @@ test('T27 an approved working-hypothesis marker is not duplicated', async () => 
   const result = await analyzeResult(payload(), validResult({ workingHypothesis: hypothesis }));
   assert.equal(result.workingHypothesis, hypothesis);
   assert.equal((result.workingHypothesis.match(/Одна из рабочих гипотез/gu) || []).length, 1);
+
+  const decorated = await analyzeResult(payload(), validResult({
+    workingHypothesis: `✅ ${hypothesis}`,
+  }));
+  assert.equal(decorated.workingHypothesis, hypothesis);
+  assert.equal((decorated.workingHypothesis.match(/Одна из рабочих гипотез/gu) || []).length, 1);
 });
 
 test('T28 insufficient_data keeps its deterministic neutral hypothesis', () => {
