@@ -25,6 +25,20 @@ function contentLength(request) {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+function sameOriginFromRequest(request) {
+  const forwardedHost = String(request.headers?.['x-forwarded-host'] || request.headers?.host || '')
+    .split(',')[0]
+    .trim();
+  const forwardedProtocol = String(request.headers?.['x-forwarded-proto'] || 'https')
+    .split(',')[0]
+    .trim();
+  return forwardedHost ? `${forwardedProtocol}://${forwardedHost}` : '';
+}
+
+export function isAllowedRequestOrigin(request, origin, configuredOrigins) {
+  return !origin || configuredOrigins.has(origin) || origin === sameOriginFromRequest(request);
+}
+
 export function parseVercelJsonBody(request) {
   const contentType = String(request.headers?.['content-type'] || '').toLocaleLowerCase('en');
   if (!contentType.startsWith('application/json')) throw new HttpInputError('UNSUPPORTED_MEDIA_TYPE', 415);
@@ -58,7 +72,7 @@ export function createVercelAnalyzeHandler({
     const requestId = createRequestId();
     const origin = request.headers?.origin || '';
 
-    if (origin && !origins.has(origin)) {
+    if (!isAllowedRequestOrigin(request, origin, origins)) {
       return writeJson(response, 403, { error: 'ORIGIN_NOT_ALLOWED' }, { requestId });
     }
     if (request.method === 'OPTIONS') {

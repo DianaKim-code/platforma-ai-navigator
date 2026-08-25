@@ -85,6 +85,13 @@ function request(method, body, origin = allowedOrigin) {
   };
 }
 
+function sameOriginRequest(method, body, origin) {
+  const value = request(method, body, origin);
+  value.headers.host = new URL(origin).host;
+  value.headers['x-forwarded-proto'] = new URL(origin).protocol.slice(0, -1);
+  return value;
+}
+
 function analyzeHandler(options = {}) {
   return createVercelAnalyzeHandler({
     loadPractices: async () => practices,
@@ -170,6 +177,18 @@ test('V08 parsed oversized body preserves 50 KB limit', async () => {
   })), response);
   assert.equal(response.statusCode, 413);
   assert.deepEqual(response.json(), { error: 'PAYLOAD_TOO_LARGE' });
+});
+
+test('V11 same-origin Vercel Preview request is accepted without wildcard CORS', async () => {
+  const origin = 'https://feature-preview.example.vercel.app';
+  const response = new MockResponse();
+  await analyzeHandler({ analyze: async () => validResult(), env: {} })(
+    sameOriginRequest('POST', payload(), origin),
+    response,
+  );
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.getHeader('access-control-allow-origin'), origin);
+  assert.deepEqual(response.json(), validResult());
 });
 
 test('V09 upstream status categories are deterministic', () => {

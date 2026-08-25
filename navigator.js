@@ -6,6 +6,7 @@ import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
 import { createPersistedNavigatorState } from './src/persistence.js';
 import { renderAiResult } from './src/resultRenderer.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from './src/safety.js';
+import { markAnalyticsTestPayload, stagingRuntime } from './src/staging.js';
 
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
 const SESSION_KEY = 'platformaSessionId';
@@ -159,32 +160,37 @@ function questions() {
   return [...first, ...priority, ...fixedQuestions.slice(3)];
 }
 
-const IS_LOCAL_PREVIEW = ['localhost', '127.0.0.1'].includes(location.hostname);
+const runtime = stagingRuntime(location);
+const IS_LOCAL_PREVIEW = runtime.localPreview;
 const previewEvents = [];
 globalThis.__platformaPreviewEvents = previewEvents;
 const analytics = createAnalytics({
   endpoint: ENDPOINT,
   sessionId,
-  local: IS_LOCAL_PREVIEW,
+  local: runtime.bufferAnalytics,
   sink: previewEvents,
 });
 
 function send(payload) {
-  if (IS_LOCAL_PREVIEW) {
-    previewEvents.push(payload);
+  const outgoing = markAnalyticsTestPayload(payload, runtime.analyticsTest);
+  if (runtime.bufferAnalytics) {
+    previewEvents.push(outgoing);
     return Promise.resolve({ preview: true });
   }
   return fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(outgoing),
     mode: 'no-cors',
     keepalive: true,
   });
 }
 
 function sendEvent(event, meta = {}) {
-  return analytics.send(event, meta).catch(() => {});
+  return analytics.send(
+    event,
+    markAnalyticsTestPayload(meta, runtime.analyticsTest, event),
+  ).catch(() => {});
 }
 
 function start() {
@@ -1074,6 +1080,10 @@ async function initializeV3() {
     });
     globalThis.__platformaV3 = {
       mode,
+      endpoint: AI_ENDPOINT,
+      sameOrigin: AI_ENDPOINT.startsWith('/'),
+      stagingPreview: runtime.vercelPreview,
+      analyticsMode: runtime.analyticsTest ? 'marked_test' : runtime.bufferAnalytics ? 'buffered' : 'live',
       practiceCount: practices.length,
       normalizeNavigatorAnswers,
     };

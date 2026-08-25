@@ -6,6 +6,7 @@ import { analyticsPayload } from '../src/analytics.js';
 import { validatePracticeId } from '../src/practiceMap.js';
 import { createPersistedNavigatorState } from '../src/persistence.js';
 import { SAFETY_STOP_ANSWER } from '../src/safety.js';
+import { markAnalyticsTestPayload, stagingRuntime } from '../src/staging.js';
 
 const practices = JSON.parse(await readFile(new URL('../data/practices.json', import.meta.url), 'utf8'));
 
@@ -150,4 +151,29 @@ test('T13 Open text not persisted without consent', () => {
   assert.equal(snapshot.resultData, resultData);
   const serialized = JSON.stringify(snapshot);
   assert.doesNotMatch(serialized, /private main concern|private desired action|private feeling|private own action|private normalized concern|private feedback/u);
+});
+
+test('T30 feature frontend uses same-origin live endpoint', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /data-ai-endpoint="\/api\/analyze"/u);
+  const runtime = stagingRuntime({
+    hostname: 'feature-preview.example.vercel.app',
+    search: '',
+  });
+  assert.equal(runtime.localPreview, false);
+  assert.equal(runtime.vercelPreview, true);
+  assert.equal(runtime.bufferAnalytics, true);
+});
+
+test('T31 marked staging analytics are explicit and normal staging stays buffered', () => {
+  const runtime = stagingRuntime({
+    hostname: 'feature-preview.example.vercel.app',
+    search: '?analytics_test=1',
+  });
+  assert.equal(runtime.analyticsTest, true);
+  assert.equal(runtime.bufferAnalytics, false);
+  assert.deepEqual(
+    markAnalyticsTestPayload({ event: 'feedback_submitted', comment: 'structured' }, true),
+    { event: 'feedback_submitted', comment: 'TEST_EVENT: structured', testEvent: true },
+  );
 });
