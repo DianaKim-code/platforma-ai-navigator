@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createAiClient, AI_MODES, createMockAnalysis, normalizeNavigatorAnswers, resolveMockRoute } from '../src/aiClient.js';
-import { analyticsPayload, stripUnconsentedOpenText } from '../src/analytics.js';
+import { analyticsPayload, createV3FeedbackPayload, stripUnconsentedOpenText } from '../src/analytics.js';
+import { hasSufficientData } from '../src/dataSufficiency.js';
 import { selectPractice, validatePracticeId } from '../src/practiceMap.js';
 import { fallbackResult, validateAnalysisResponse } from '../src/schema.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from '../src/safety.js';
@@ -62,6 +63,18 @@ test('insufficient data returns controlled neutral result', () => {
   assert.equal(result.practiceId, null);
 });
 
+test('T34 placeholder values do not count as sufficient data', () => {
+  assert.equal(hasSufficientData(base({
+    domain: ['Пока сложно определить'],
+    barrier: 'Другое',
+    pattern: 'Другое',
+    duration: 'Пока трудно определить',
+    lifeImpact: ['Другое'],
+    desiredResult: 'Пока не могу выбрать',
+    resource: ['Пока не вижу опоры'],
+  })), false);
+});
+
 test('contradiction gives resource priority', () => {
   const answers = base({ resourceLevel: 'Сейчас сил почти нет', need: 'Готова к глубокой работе' });
   assert.equal(resolveMockRoute(answers), 'R2');
@@ -90,6 +103,37 @@ test('analytics payload contains no answer text by default', () => {
   assert.equal(payload.event, 'question_answered');
   assert.equal('answer' in payload, false);
   assert.equal('openConcern' in payload, false);
+});
+
+test('T36 v3 feedback payload preserves structured fields', () => {
+  const payload = createV3FeedbackPayload({
+    sessionId: 'v3-test', resultStatus: 'ok', route: 'R1', practice: 'PM-CS-01',
+    reflectionScore: '4', explanationScore: '5', clarityScore: '4', stepRealism: '5',
+    trustScore: '4', recognition: 'Да, точно', repetition: 'Нет',
+    bookingReadiness: 'Возможно позже', source: 'staging', timestamp: '2026-08-26T00:00:00.000Z',
+  });
+  for (const field of ['resultStatus', 'route', 'practice', 'reflectionScore', 'explanationScore',
+    'clarityScore', 'stepRealism', 'trustScore', 'recognition', 'repetition',
+    'bookingReadiness', 'source', 'timestamp']) assert.ok(field in payload, field);
+});
+
+test('T37 consent=false strips v3 open text', () => {
+  const payload = createV3FeedbackPayload({
+    sessionId: 'v3-private', route: 'R1', openTextConsent: false,
+    openConcern: 'private concern', openFeedback: 'private feedback', mainConcern: 'private raw answer',
+  });
+  assert.equal(payload.openTextConsent, false);
+  for (const field of ['openConcern', 'openFeedback', 'mainConcern']) assert.equal(field in payload, false);
+});
+
+test('T38 consent=true keeps allowed v3 open text', () => {
+  const payload = createV3FeedbackPayload({
+    sessionId: 'v3-consented', openTextConsent: true,
+    openConcern: 'synthetic concern', openFeedback: 'synthetic feedback',
+  });
+  assert.equal(payload.openTextConsent, true);
+  assert.equal(payload.openConcern, 'synthetic concern');
+  assert.equal(payload.openFeedback, 'synthetic feedback');
 });
 
 test('mock client validates structured output', async () => {

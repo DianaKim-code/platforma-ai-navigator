@@ -1,7 +1,7 @@
 'use strict';
 
 import { createAiClient, AI_MODES, normalizeNavigatorAnswers } from './src/aiClient.js';
-import { createAnalytics } from './src/analytics.js';
+import { createAnalytics, createV3FeedbackPayload } from './src/analytics.js';
 import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
 import { createPersistedNavigatorState } from './src/persistence.js';
 import { renderAiResult } from './src/resultRenderer.js';
@@ -956,7 +956,7 @@ function structuredPayload() {
   const structuredSummary = `Отражение: ${feedbackState.reflection} · Понятность объяснения: ${feedbackState.explanation} · Ясность после: ${feedbackState.clarityAfter} · Реалистичность шага: ${feedbackState.stepRealism} · Доверие: ${feedbackState.trust} · Узнавание: ${feedbackState.recognition} · Простое повторение: ${feedbackState.repetition}`;
   const feedbackComment = feedbackState.text.trim();
   const openTextConsent = document.getElementById('openTextConsent').checked;
-  const payload = {
+  const payload = createV3FeedbackPayload({
     sessionId,
     status: 'завершено',
     event: 'feedback_submitted',
@@ -987,12 +987,11 @@ function structuredPayload() {
     consent: true,
     source: 'AI-навигатор Платформа · MVP v3 beta',
     timestamp: new Date().toISOString(),
-  };
-  if (openTextConsent) {
-    payload.openConcern = safeOpenText(answers.mainConcern, 320);
-    payload.openFeedback = safeOpenText(feedbackComment, 500);
-    payload.comment = payload.openFeedback ? `${structuredSummary} · Открытая обратная связь: ${payload.openFeedback}` : structuredSummary;
-  }
+    openTextConsent,
+    openConcern: safeOpenText(answers.mainConcern, 320),
+    openFeedback: safeOpenText(feedbackComment, 500),
+  });
+  if (payload.openFeedback) payload.comment = `${structuredSummary} · Открытая обратная связь: ${payload.openFeedback}`;
   return payload;
 }
 

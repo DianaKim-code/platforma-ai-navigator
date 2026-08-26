@@ -20,6 +20,27 @@ export function analyticsPayload(event, sessionId, meta = {}) {
   };
 }
 
+export function createV3FeedbackPayload(input = {}) {
+  const {
+    openTextConsent = false,
+    openConcern = '',
+    openFeedback = '',
+    ...structured
+  } = input;
+  const payload = {
+    ...structured,
+    status: structured.status || 'завершено',
+    event: structured.event || 'feedback_submitted',
+    timestamp: structured.timestamp || new Date().toISOString(),
+    openTextConsent: Boolean(openTextConsent),
+  };
+  if (openTextConsent) {
+    payload.openConcern = openConcern;
+    payload.openFeedback = openFeedback;
+  }
+  return stripUnconsentedOpenText(payload, openTextConsent);
+}
+
 export function createAnalytics({ endpoint, sessionId, local = false, sink = [] }) {
   async function send(event, meta = {}) {
     const payload = analyticsPayload(event, sessionId, meta);

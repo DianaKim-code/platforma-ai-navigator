@@ -250,6 +250,36 @@ test('LIVE/T14 insufficient data bypasses provider', async () => {
   });
 });
 
+test('T35 fully uncertain placeholders return HTTP 200 and bypass provider', async () => {
+  let providerCalls = 0;
+  const analyze = (answers, map, env) => analyzeWithProvider(
+    answers,
+    map,
+    env,
+    providerResult(validResult(), () => { providerCalls += 1; }),
+    100,
+  );
+  await withServer({ analyze, env: {} }, async (baseUrl) => {
+    const response = await post(baseUrl, JSON.stringify(payload({
+      domain: ['Пока сложно определить'],
+      pattern: 'Другое',
+      duration: 'Пока трудно определить',
+      lifeImpact: ['Другое'],
+      barrier: 'Другое',
+      desiredResult: 'Пока не могу выбрать',
+      resource: ['Пока не вижу опоры'],
+      resourceLevel: 'Пока трудно определить',
+    })));
+    const result = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(providerCalls, 0);
+    assert.equal(result.status, 'insufficient_data');
+    assert.equal(result.route, null);
+    assert.equal(result.practiceId, null);
+    assert.equal(validateAnalysisResponse(result, new Set(practices.map(({ id }) => id))).ok, true);
+  });
+});
+
 test('T15 Practice text comes from Practice Map', async () => {
   const answers = payload();
   const result = await analyzeResult(answers, validResult({
