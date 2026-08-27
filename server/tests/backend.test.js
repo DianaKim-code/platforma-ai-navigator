@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { analyzeWithProvider, createInsufficientDataResult } from '../src/analyze.js';
+import {
+  analyzeWithProvider,
+  buildGroundedRationale,
+  createInsufficientDataResult,
+  isExplainableRationale,
+  isMechanismHypothesis,
+} from '../src/analyze.js';
 import { createRequestHandler } from '../src/app.js';
 import { validateAnalysisResponse } from '../../src/schema.js';
 
@@ -36,6 +42,7 @@ function validResult(overrides = {}) {
     title: 'Точка начала',
     reflection: 'По ответам уже видна одна безопасная точка начала.',
     observedFacts: ['Вы выбрали сферу работы.', 'Вы отметили нехватку первого шага.'],
+    rationale: 'Направление работы уже обозначено, при этом препятствием остаётся нехватка первого шага. Важно, что силы на небольшой шаг есть. Поэтому предлагается ограниченный шаг, который связывает препятствие с доступным ресурсом.',
     workingHypothesis: 'Одна из рабочих гипотез — сейчас полезнее уточнить первый шаг.',
     confidence: 'medium',
     requestDraft: 'Как выбрать первый реалистичный шаг?',
@@ -435,16 +442,16 @@ test('Backend supplies ordinary human-support flags when provider omits them', a
 
 test('T26 status=ok adds an approved marker to an unmarked working hypothesis', async () => {
   const result = await analyzeResult(payload(), validResult({
-    workingHypothesis: 'Сейчас полезнее перевести выбранное направление в один проверяемый шаг.',
+    workingHypothesis: 'Отсутствие ясного критерия может удерживать движение, хотя ресурс на небольшой шаг уже есть.',
   }));
   assert.equal(
     result.workingHypothesis,
-    'Одна из рабочих гипотез — Сейчас полезнее перевести выбранное направление в один проверяемый шаг.',
+    'Одна из рабочих гипотез — Отсутствие ясного критерия может удерживать движение, хотя ресурс на небольшой шаг уже есть.',
   );
 });
 
 test('T27 an approved working-hypothesis marker is not duplicated', async () => {
-  const hypothesis = 'Одна из рабочих гипотез — сейчас полезнее уточнить первый шаг.';
+  const hypothesis = 'Одна из рабочих гипотез — отсутствие ясного критерия может удерживать движение, хотя ресурс на небольшой шаг уже есть.';
   const result = await analyzeResult(payload(), validResult({ workingHypothesis: hypothesis }));
   assert.equal(result.workingHypothesis, hypothesis);
   assert.equal((result.workingHypothesis.match(/Одна из рабочих гипотез/gu) || []).length, 1);
@@ -476,4 +483,54 @@ test('T29 hypothesis enforcement does not change observedFacts', async () => {
     'Доступный ресурс: Есть силы на один небольшой шаг.',
   ]);
   assert.match(result.workingHypothesis, /^Одна из рабочих гипотез —/u);
+});
+
+test('T49 founder rationale links grounded barrier, resource and risk to the step type', () => {
+  const answers = payload({
+    domain: ['Доход и финансовое положение', 'Собственное дело или реализация'],
+    desiredResult: 'Собственное дело или реализация',
+    barrier: 'Не хватило поддержки',
+    pattern: 'Не хватило поддержки',
+    resourceLevel: 'Есть ресурс для последовательных действий',
+    risk: 'Потеря стабильности',
+  });
+  const rationale = buildGroundedRationale(answers, { nextStep: 'Выбрать один обратимый тест.' });
+  assert.equal(isExplainableRationale(rationale, answers), true);
+  assert.match(rationale, /Не хватило поддержки/u);
+  assert.match(rationale, /Есть ресурс для последовательных действий/u);
+  assert.match(rationale, /Потеря стабильности/u);
+  assert.match(rationale, /Поэтому/u);
+});
+
+test('T50 answer-list rationale is replaced by grounded synthesis', async () => {
+  const answerList = 'Вы указали сферу работы. Вы выбрали нехватку первого шага. Вы отметили доступный ресурс.';
+  const result = await analyzeResult(payload(), validResult({ rationale: answerList }));
+  assert.notEqual(result.rationale, answerList);
+  assert.equal(isExplainableRationale(result.rationale, payload()), true);
+  assert.doesNotMatch(result.rationale, /^(?:Вы указали|Вы выбрали|Вы отметили)/u);
+});
+
+test('T51 working hypothesis is a mechanism, not a next-step instruction', async () => {
+  const result = await analyzeResult(payload(), validResult({
+    workingHypothesis: 'Одна из рабочих гипотез — ближайший шаг стоит проверить на вашем опыте.',
+  }));
+  assert.equal(isMechanismHypothesis(result.workingHypothesis), true);
+  assert.doesNotMatch(result.workingHypothesis, /ближайш\w* шаг стоит проверить/iu);
+  assert.notEqual(result.workingHypothesis, result.nextStep);
+});
+
+test('T52 rationale remains grounded when provider invents an unsupported state', async () => {
+  const result = await analyzeResult(payload(), validResult({
+    rationale: 'Вы испытываете скрытый страх. Поэтому вам нужна эта практика.',
+  }));
+  assert.doesNotMatch(result.rationale, /скрыт\w* страх/iu);
+  assert.equal(isExplainableRationale(result.rationale, payload()), true);
+});
+
+test('T53 rationale explains why the recommendation fits the identified node', async () => {
+  const result = await analyzeResult(payload(), validResult({ rationale: '' }));
+  assert.match(result.rationale, /препятств/u);
+  assert.match(result.rationale, /ресурс/u);
+  assert.match(result.rationale, /Поэтому/u);
+  assert.match(result.rationale, /шаг/u);
 });

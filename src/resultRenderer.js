@@ -24,7 +24,7 @@ export function renderAiResult(root, titleElement, result, practice) {
   root.replaceChildren();
   titleElement.textContent = result.title;
   root.appendChild(section('Что сейчас видно', result.reflection));
-  root.appendChild(section('Почему навигатор пришёл к этому выводу', result.observedFacts.length ? result.observedFacts : ['Данных для уверенного вывода пока недостаточно.'], 'facts-section'));
+  root.appendChild(section('Почему навигатор пришёл к этому выводу', result.rationale, 'rationale-section'));
   const hypothesis = section('Рабочая гипотеза', result.workingHypothesis, 'hypothesis-section');
   const marker = document.createElement('p');
   marker.className = 'hypothesis-marker';

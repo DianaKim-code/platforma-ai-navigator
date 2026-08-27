@@ -21,6 +21,7 @@ export function fallbackResult(message = 'Сейчас не удалось на�
     title: 'Сначала стоит точнее определить точку начала',
     reflection: message,
     observedFacts: [],
+    rationale: 'Пока недостаточно двух содержательных сигналов, чтобы надёжно объяснить связь между ситуацией и следующим шагом.',
     workingHypothesis: 'Данных для рабочей гипотезы пока недостаточно.',
     confidence: 'low',
     requestDraft: 'Уточнить один конкретный момент, в котором изменение останавливается.',
@@ -45,7 +46,7 @@ export function validateAnalysisResponse(value, knownPracticeIds = new Set()) {
   if (!VALID_ROUTES.has(value.route ?? null)) errors.push('invalid_route');
   if (!VALID_CONFIDENCE.has(value.confidence)) errors.push('invalid_confidence');
   if (!Array.isArray(value.observedFacts) || !value.observedFacts.every(isText)) errors.push('invalid_observed_facts');
-  for (const field of ['title', 'reflection', 'workingHypothesis', 'requestDraft', 'practiceReason', 'nextStep', 'disclaimer']) {
+  for (const field of ['title', 'reflection', 'rationale', 'workingHypothesis', 'requestDraft', 'practiceReason', 'nextStep', 'disclaimer']) {
     if (!isText(value[field])) errors.push(`invalid_${field}`);
   }
   if (!value.humanSupport || typeof value.humanSupport !== 'object') {
@@ -71,7 +72,7 @@ export function validateAnalysisResponse(value, knownPracticeIds = new Set()) {
   }
   if (value.status !== 'ok' && value.route !== null) errors.push('route_requires_ok_status');
 
-  const narrative = [value.reflection, value.workingHypothesis, value.requestDraft, value.practiceReason, value.nextStep].join(' ');
+  const narrative = [value.reflection, value.rationale, value.workingHypothesis, value.requestDraft, value.practiceReason, value.nextStep].join(' ');
   if (FORBIDDEN_PHRASES.some((pattern) => pattern.test(narrative))) errors.push('unsafe_psychological_claim');
 
   return errors.length

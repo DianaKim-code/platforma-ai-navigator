@@ -109,6 +109,7 @@ export function createInsufficientDataResult(answers = {}) {
     title: 'Сначала уточним одну точку ситуации',
     reflection: `${known} ${gap} Один нейтральный пример поможет сделать следующий вывод точнее.`,
     observedFacts: facts,
+    rationale: 'Пока недостаточно двух содержательных сигналов, чтобы надёжно объяснить связь между ситуацией и следующим шагом.',
     workingHypothesis: 'Данных для рабочей гипотезы пока недостаточно.',
     confidence: 'low',
     requestDraft: 'Какой один недавний эпизод лучше всего показывает, где изменение останавливается?',
@@ -143,6 +144,57 @@ function canonicalPracticeFor(answers, route, practices) {
     barrier: answers.barrier,
     need: answers.need,
   });
+}
+
+export function buildGroundedRationale(answers, practice) {
+  const topic = answers.desiredResult || answers.domain?.[0] || 'выбранное направление';
+  const barrier = answers.barrier || answers.pattern || 'неясная точка начала';
+  const resource = answers.resourceLevel || 'ресурс пока не определён';
+  const risk = answers.risk
+    ? ` Одновременно вы отмечаете риск «${answers.risk}», поэтому важно не повышать цену первого решения.`
+    : '';
+  const practiceLink = practice?.nextStep
+    ? 'Поэтому предложен ограниченный по масштабу шаг из выбранной практики: он учитывает названное препятствие и доступный ресурс, не требуя сразу принимать большое решение.'
+    : 'Поэтому следующий шаг должен связать названное препятствие с доступным ресурсом и дать возможность проверить направление без большого решения.';
+  return `Направление «${topic}» уже обозначено, при этом основным препятствием вы называете «${barrier}». Важно, что доступный ресурс — «${resource}»: это помогает отделить нехватку сил от конкретной точки остановки.${risk} ${practiceLink}`;
+}
+
+function groundedSignals(answers) {
+  return [
+    ...(answers.domain || []), answers.desiredResult, answers.barrier, answers.pattern,
+    answers.resourceLevel, answers.risk, ...(answers.resource || []),
+  ].filter(Boolean).map((value) => String(value).toLocaleLowerCase('ru'));
+}
+
+export function isExplainableRationale(value, answers) {
+  const text = String(value || '').trim();
+  const sentences = text.split(/(?<=[.!?])\s+/u).filter(Boolean);
+  const normalized = text.toLocaleLowerCase('ru');
+  const groundedCount = groundedSignals(answers)
+    .filter((signal, index, all) => all.indexOf(signal) === index)
+    .filter((signal) => normalized.includes(signal)).length;
+  const answerListCount = sentences.filter((sentence) => /^вы\s+(?:указали|выбрали|отметили)/iu.test(sentence)).length;
+  return sentences.length >= 3
+    && groundedCount >= 2
+    && answerListCount < sentences.length - 1
+    && /(?:при этом|одновременно|важно|это показывает|это может означать)/iu.test(text)
+    && /(?:поэтому|следующ\w* шаг|предложен\w*)/iu.test(text);
+}
+
+export function isMechanismHypothesis(value) {
+  const text = String(value || '').replace(APPROVED_HYPOTHESIS_MARKER, '').trim();
+  if (!text || /(?:ближайш\w* шаг|стоит\s+(?:проверить|сделать|выбрать)|следует\s+сделать|нужно\s+сделать|предлагается)/iu.test(text)) return false;
+  return /(?:может|удержива|останавлива|связано|соприкаса|поддержива|не\s+.+,?\s+а\s+)/iu.test(text);
+}
+
+function hypothesisFallback(answers) {
+  const barrier = answers.barrier || answers.pattern;
+  const resource = answers.resourceLevel;
+  const risk = answers.risk;
+  if (barrier && resource) {
+    return `Одна из рабочих гипотез — препятствие «${barrier}» может продолжать удерживать движение даже при доступном ресурсе «${resource}»${risk ? `, особенно когда важно учесть риск «${risk}»` : ''}.`;
+  }
+  return 'Одна из рабочих гипотез — направление уже обозначено, но способ начать пока не соотнесён с доступным ресурсом и ценой первого решения.';
 }
 
 function safeType(value) {
@@ -237,11 +289,18 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
     text: practice.text,
     nextStep: practice.nextStep,
   } : null;
-  const workingHypothesis = sanitizeProse(
+  const providerHypothesis = sanitizeProse(
     result.workingHypothesis,
     sourceText,
-    'Ближайший шаг стоит проверить на вашем опыте.',
+    '',
   );
+  const workingHypothesis = isMechanismHypothesis(providerHypothesis)
+    ? providerHypothesis
+    : hypothesisFallback(answers);
+  const providerRationale = sanitizeProse(result.rationale, sourceText, '');
+  const rationale = isExplainableRationale(providerRationale, answers)
+    ? providerRationale
+    : buildGroundedRationale(answers, practice);
 
   return {
     ...result,
@@ -250,6 +309,7 @@ export function canonicalizeAnalysisResult(result, answers, practices) {
     title: sanitizeProse(result.title, sourceText, 'Предварительное отражение ситуации'),
     reflection: sanitizeProse(result.reflection, sourceText, synthesisFallback(answers)),
     observedFacts: deterministicObservedFacts(answers),
+    rationale,
     workingHypothesis: ensureHypothesisMarker(workingHypothesis),
     requestDraft: sanitizeProse(
       result.requestDraft,

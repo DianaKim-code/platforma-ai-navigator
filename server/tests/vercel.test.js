@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { analyzeWithProvider, classifyProviderHttpStatus } from '../src/analyze.js';
 import {
   createVercelAnalyzeHandler,
+  createVercelFeedbackHandler,
   createVercelHealthHandler,
 } from '../src/vercelAdapter.js';
 
@@ -37,6 +38,7 @@ function validResult() {
     title: 'Точка начала',
     reflection: 'По ответам уже видна безопасная точка начала.',
     observedFacts: ['Вы выбрали сферу работы.', 'Вы отметили нехватку первого шага.'],
+    rationale: 'Направление работы уже обозначено, при этом препятствием остаётся нехватка первого шага. Важно, что силы на небольшой шаг есть. Поэтому предлагается ограниченный шаг, который связывает препятствие с доступным ресурсом.',
     workingHypothesis: 'Одна из рабочих гипотез — сейчас полезнее уточнить первый шаг.',
     confidence: 'medium',
     requestDraft: 'Как выбрать первый реалистичный шаг?',
@@ -332,4 +334,35 @@ test('T25 invalid-response diagnostics expose stages and safe types only', async
     assert.doesNotMatch(diagnostic, /authorization|prompt|messages|answers|stack/iu);
     assert.doesNotMatch(response.body, /private|UNKNOWN-PRACTICE|stack/iu);
   }
+});
+
+test('V12 POST /api/feedback returns ok only after Apps Script confirms storage', async () => {
+  const response = new MockResponse();
+  const handler = createVercelFeedbackHandler({
+    createRequestId: () => 'feedback-request-id',
+    fetchImpl: async () => ({ ok: true, async json() { return { success: true }; } }),
+  });
+  await handler(sameOriginRequest('POST', {
+    event: 'feedback_submitted', sessionId: 'feedback-session', openTextConsent: false,
+  }, 'https://feature-preview.example.vercel.app'), response);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), { ok: true });
+});
+
+test('V13 feedback proxy exposes no upstream body, open text or stack trace', async () => {
+  const response = new MockResponse();
+  const handler = createVercelFeedbackHandler({
+    createRequestId: () => 'feedback-request-id',
+    fetchImpl: async () => ({
+      ok: true,
+      async json() { return { success: false, error: 'private upstream body' }; },
+    }),
+  });
+  await handler(sameOriginRequest('POST', {
+    event: 'feedback_submitted', sessionId: 'feedback-session', openTextConsent: true,
+    openFeedback: 'private founder feedback',
+  }, 'https://feature-preview.example.vercel.app'), response);
+  assert.equal(response.statusCode, 502);
+  assert.deepEqual(response.json(), { error: 'FEEDBACK_NOT_STORED' });
+  assert.doesNotMatch(response.body, /private upstream body|private founder feedback|stack/iu);
 });

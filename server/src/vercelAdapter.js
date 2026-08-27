@@ -6,6 +6,7 @@ import {
   safeError,
 } from './app.js';
 import { HttpInputError, ProviderError } from './errors.js';
+import { createFeedbackProcessor, FeedbackError } from './feedback.js';
 
 function writeJson(response, status, body, { origin = '', requestId = '', allow = '' } = {}) {
   response.statusCode = status;
@@ -136,5 +137,38 @@ export function createVercelHealthHandler({ createRequestId = randomUUID } = {})
       service: 'platforma-ai-navigator-v3',
       environment: 'staging',
     }, { requestId });
+  };
+}
+
+export function createVercelFeedbackHandler({
+  env = process.env,
+  createRequestId = randomUUID,
+  ...processorOptions
+} = {}) {
+  const origins = allowedOrigins(env);
+  const processFeedback = createFeedbackProcessor({ env, ...processorOptions });
+  return async function vercelFeedbackHandler(request, response) {
+    const requestId = createRequestId();
+    const origin = request.headers?.origin || '';
+    if (!isAllowedRequestOrigin(request, origin, origins)) {
+      return writeJson(response, 403, { error: 'ORIGIN_NOT_ALLOWED' }, { requestId });
+    }
+    if (request.method !== 'POST') {
+      return writeJson(response, 405, { error: 'METHOD_NOT_ALLOWED' }, {
+        origin, requestId, allow: 'POST',
+      });
+    }
+    try {
+      await processFeedback(parseVercelJsonBody(request));
+      return writeJson(response, 200, { ok: true }, { origin, requestId });
+    } catch (error) {
+      if (error instanceof HttpInputError) {
+        return writeJson(response, error.status, { error: error.code }, { origin, requestId });
+      }
+      if (error instanceof FeedbackError) {
+        return writeJson(response, error.status, { error: error.code }, { origin, requestId });
+      }
+      return writeJson(response, 502, { error: 'FEEDBACK_UPSTREAM_UNAVAILABLE' }, { origin, requestId });
+    }
   };
 }

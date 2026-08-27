@@ -4,6 +4,7 @@ import { createAiClient, AI_MODES, normalizeNavigatorAnswers } from './src/aiCli
 import { createAnalytics, createV3FeedbackPayload } from './src/analytics.js';
 import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
 import { createPersistedNavigatorState } from './src/persistence.js';
+import { clearJourneyContext, getJourneyContext } from './src/journey.js';
 import { renderAiResult } from './src/resultRenderer.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from './src/safety.js';
 import {
@@ -13,32 +14,15 @@ import {
   stagingRuntime,
 } from './src/staging.js';
 
-const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
-const SESSION_KEY = 'platformaSessionId';
+const FEEDBACK_ENDPOINT = '/api/feedback';
 const NAV_STATE_KEY = 'platformaNavigatorResultState';
 const CATALOG_URL = 'specialists.html';
 const NONE_AREA = 'Пока сложно определить';
 const NONE_TOPIC = 'Пока не могу выбрать';
 const AI_ENDPOINT = document.documentElement.dataset.aiEndpoint || '';
 
-function createSessionId() {
-  return globalThis.crypto?.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : `navigator_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-}
-
-function getSessionId() {
-  try {
-    const existing = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
-    const value = existing || createSessionId();
-    sessionStorage.setItem(SESSION_KEY, value);
-    return value;
-  } catch (error) {
-    return createSessionId();
-  }
-}
-
-const sessionId = getSessionId();
+const journey = getJourneyContext();
+const sessionId = journey.sessionId;
 const answers = {};
 const feedbackState = {
   reflection: '',
@@ -170,14 +154,14 @@ const IS_LOCAL_PREVIEW = runtime.localPreview;
 const previewEvents = [];
 globalThis.__platformaPreviewEvents = previewEvents;
 const analytics = createAnalytics({
-  endpoint: ENDPOINT,
+  endpoint: FEEDBACK_ENDPOINT,
   sessionId,
-  local: runtime.bufferAnalytics,
+  local: true,
   sink: previewEvents,
 });
 
 const send = createPreviewAwareSender({
-  endpoint: ENDPOINT,
+  endpoint: FEEDBACK_ENDPOINT,
   runtime,
   sink: previewEvents,
 });
@@ -822,6 +806,8 @@ function goToCatalog() {
 function trackBooking() {
   send({
     sessionId,
+    schemaVersion: 'v3',
+    startedAt: journey.startedAt,
     status: 'переход к записи',
     bookingClicked: true,
     route: resultData.route,
@@ -839,7 +825,7 @@ function saveResult() {
     'ПЛАТФОРМА — результат AI-навигатора',
     '',
     `Что сейчас видно: ${resultData.reflection}`,
-    `Наблюдаемые факты: ${resultData.observedFacts.join(' · ')}`,
+    `Почему навигатор пришёл к этому выводу: ${resultData.rationale}`,
     `Рабочая гипотеза: ${resultData.workingHypothesis}`,
     `Как можно сформулировать запрос: ${resultData.requestDraft}`,
     `Первый шаг: ${practice?.text || resultData.nextStep}`,
@@ -859,6 +845,7 @@ function saveResult() {
 function restartNavigator() {
   try {
     sessionStorage.removeItem(NAV_STATE_KEY);
+    clearJourneyContext();
   } catch (error) {}
   setTimeout(() => location.reload(), 80);
 }
@@ -949,16 +936,17 @@ function safeOpenText(value, maxLength) {
 
 function structuredPayload() {
   const practice = validatePracticeId(practices, resultData.practiceId);
-  const structuredSummary = `Отражение: ${feedbackState.reflection} · Понятность объяснения: ${feedbackState.explanation} · Ясность после: ${feedbackState.clarityAfter} · Реалистичность шага: ${feedbackState.stepRealism} · Доверие: ${feedbackState.trust} · Узнавание: ${feedbackState.recognition} · Простое повторение: ${feedbackState.repetition}`;
   const feedbackComment = feedbackState.text.trim();
   const openTextConsent = document.getElementById('openTextConsent').checked;
   const payload = createV3FeedbackPayload({
     sessionId,
+    schemaVersion: 'v3',
+    startedAt: journey.startedAt,
+    completedAt: new Date().toISOString(),
     status: 'завершено',
     event: 'feedback_submitted',
     resultStatus: resultData.status,
     mainSituation: (answers.areas || []).join(' · '),
-    mainConcern: answers.obstacle || '',
     duration: answers.duration || '',
     lifeImpact: (answers.losses || []).join(' · '),
     triedBefore: (answers.tried || []).join(' · '),
@@ -977,9 +965,6 @@ function structuredPayload() {
     repetition: feedbackState.repetition,
     bookingReadiness: feedbackState.discuss,
     bookingClicked: false,
-    comment: structuredSummary,
-    name: '',
-    contact: '',
     consent: true,
     source: 'AI-навигатор Платформа · MVP v3 beta',
     timestamp: new Date().toISOString(),
@@ -987,7 +972,6 @@ function structuredPayload() {
     openConcern: safeOpenText(answers.mainConcern, 320),
     openFeedback: safeOpenText(feedbackComment, 500),
   });
-  if (payload.openFeedback) payload.comment = `${structuredSummary} · Открытая обратная связь: ${payload.openFeedback}`;
   return payload;
 }
 
@@ -1018,7 +1002,7 @@ async function submitFeedback() {
     document.getElementById('finish').classList.remove('hidden');
     document.getElementById('finish').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (error) {
-    document.getElementById('sendStatus').textContent = 'Не удалось сохранить ответы. Проверьте интернет и попробуйте ещё раз.';
+    document.getElementById('sendStatus').textContent = 'Не удалось подтвердить отправку. Проверьте интернет и попробуйте ещё раз.';
     button.disabled = false;
   }
 }
@@ -1039,11 +1023,17 @@ document.getElementById('supportButton').addEventListener('click', showSupport);
 document.getElementById('specialistsButton').addEventListener('click', goToCatalog);
 document.getElementById('booking').addEventListener('click', trackBooking);
 document.getElementById('profileLink').addEventListener('click', () => {
-  sendEvent('profile_opened', {
+  send({
+    sessionId,
+    schemaVersion: 'v3',
+    startedAt: journey.startedAt,
+    event: 'profile_opened',
+    status: 'profile_opened',
     specialistId: 'diana_kim',
     source: 'navigator_result_card',
     route: resultData.route,
-  });
+    timestamp: new Date().toISOString(),
+  }).catch(() => {});
 });
 document.getElementById('submitFeedbackButton').addEventListener('click', submitFeedback);
 document.getElementById('skipFeedbackButton').addEventListener('click', skipFeedback);

@@ -119,7 +119,17 @@ Feedback v3 содержит пять отдельных шкал 1–5: соо�
 
 События v3: `navigator_start`, `question_answered`, `clarification_shown`, `result_generated`, `result_status`, `route_assigned`, `practice_shown`, `practice_opened`, `feedback_submitted`, `profile_opened`, `whatsapp_clicked`. `profile_opened` и `whatsapp_clicked` не считаются фактической записью. `message_received`, `booking` и `payment` пока учитываются отдельно вручную.
 
-Существующий Google Apps Script endpoint аналитики сохранён без изменений. Не меняйте `ENDPOINT` без отдельного продуктового и технического решения.
+MVP v3 отправляет только значимые journey-обновления через same-origin `POST /api/feedback`.
+Endpoint подтверждает запись JSON-ответом `{ "ok": true }`; только после этого интерфейс показывает
+успешную отправку. Google Apps Script version 4 делает v3 upsert по `sessionId`, поэтому feedback,
+открытие профиля и WhatsApp обновляют одну строку `Прохождения`. Legacy v2 payload без
+`schemaVersion: "v3"` сохраняет прежнюю append-only механику. Техническая Preview-телеметрия
+остаётся buffered; при будущей отправке она маршрутизируется отдельно в `События`.
+
+В пользовательском результате `rationale` отделено от `observedFacts`: это короткое grounded
+объяснение связи барьера, ресурса и риска с типом следующего шага. Backend отвергает answer-list
+rationale и гипотезу, сформулированную как рекомендация, подставляя безопасный детерминированный
+fallback без раскрытия chain-of-thought.
 
 ## Тесты
 

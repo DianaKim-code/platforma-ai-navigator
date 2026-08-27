@@ -73,6 +73,13 @@ function hypothesisFor(route, answers) {
   return 'Одна из рабочих гипотез — направление уже достаточно понятно, а основной задачей становится перевод намерения в небольшой проверяемый шаг.';
 }
 
+function rationaleFor(answers, practice) {
+  const topic = answers.desiredResult || answers.domain?.[0] || 'выбранное направление';
+  const barrier = answers.barrier || 'неясная точка начала';
+  const resource = answers.resourceLevel || 'ресурс пока не определён';
+  return `Направление «${topic}» уже обозначено, при этом движение останавливается на препятствии «${barrier}». Важно учитывать и доступный ресурс: ${resource.toLocaleLowerCase('ru')}. Поэтому предлагается короткий шаг из выбранной практики: он соотносит препятствие с доступным ресурсом и позволяет проверить направление без большого решения.`;
+}
+
 function nextStepFor(answers, practice) {
   if (includes(answers.barrier, 'ошибиться') || includes(answers.risk, 'ошибка')) {
     return 'Выберите один обратимый шаг, который можно проверить без крупной ставки, и заранее определите условие остановки.';
@@ -93,6 +100,7 @@ export function createMockAnalysis(answers, practices) {
       title: 'Сейчас важнее срочная живая поддержка',
       reflection: '',
       observedFacts: [],
+      rationale: '',
       workingHypothesis: '',
       requestDraft: '',
       practiceId: null,
@@ -119,6 +127,7 @@ export function createMockAnalysis(answers, practices) {
     title: 'Точка начала, которая сейчас выглядит реалистичной',
     reflection: `В теме «${topic}» необходимость перемен уже заметна. По сочетанию ответов полезнее выбрать один следующий уровень действия, не пытаясь решить всю ситуацию сразу.`,
     observedFacts: facts,
+    rationale: rationaleFor(answers, practice),
     workingHypothesis: hypothesisFor(route, answers),
     confidence: facts.length >= 3 ? 'medium' : 'low',
     requestDraft: `Как я могу продвинуться в теме «${topic}», учитывая текущий ресурс и то, что меня останавливает?`,

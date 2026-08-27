@@ -8,7 +8,9 @@ import { selectPractice, validatePracticeId } from '../src/practiceMap.js';
 import { fallbackResult, validateAnalysisResponse } from '../src/schema.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from '../src/safety.js';
 import { createPreviewAwareSender, FEEDBACK_SENT_MESSAGE, stagingRuntime } from '../src/staging.js';
+import { clearJourneyContext, getJourneyContext } from '../src/journey.js';
 import { analyzeWithProvider } from '../server/src/analyze.js';
+import { createFeedbackProcessor } from '../server/src/feedback.js';
 
 const practices = JSON.parse(await readFile(new URL('../data/practices.json', import.meta.url), 'utf8'));
 const knownIds = new Set(practices.map((item) => item.id));
@@ -163,14 +165,16 @@ test('T40 Vercel Preview feedback performs a real POST', async () => {
     runtime: ordinaryVercelPreview(),
     fetchImpl: async (url, options) => {
       calls.push({ url, options });
-      return { type: 'opaque' };
+      return { ok: true, async json() { return { ok: true }; } };
     },
   });
   const result = await send({ event: 'feedback_submitted', sessionId: 'preview-feedback' });
   assert.equal(result.preview, false);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].options.method, 'POST');
-  assert.equal(calls[0].options.mode, 'no-cors');
+  assert.equal(calls[0].url, 'https://script.google.com/macros/s/test/exec');
+  assert.equal(calls[0].options.mode, undefined);
+  assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
 });
 
 test('T41 Preview feedback is automatically marked as a test event', async () => {
@@ -180,7 +184,7 @@ test('T41 Preview feedback is automatically marked as a test event', async () =>
     runtime: ordinaryVercelPreview(),
     fetchImpl: async (_url, options) => {
       body = JSON.parse(options.body);
-      return { type: 'opaque' };
+      return { ok: true, async json() { return { ok: true }; } };
     },
   });
   await send({ event: 'feedback_submitted', sessionId: 'preview-marked' });
@@ -194,7 +198,7 @@ test('T42 Preview feedback consent=false sends no open text', async () => {
     runtime: ordinaryVercelPreview(),
     fetchImpl: async (_url, options) => {
       body = JSON.parse(options.body);
-      return { type: 'opaque' };
+      return { ok: true, async json() { return { ok: true }; } };
     },
   });
   await send(createV3FeedbackPayload({
@@ -219,7 +223,7 @@ test('T43 Preview feedback consent=true keeps permitted synthetic open text', as
     runtime: ordinaryVercelPreview(),
     fetchImpl: async (_url, options) => {
       body = JSON.parse(options.body);
-      return { type: 'opaque' };
+      return { ok: true, async json() { return { ok: true }; } };
     },
   });
   await send(createV3FeedbackPayload({
@@ -232,7 +236,7 @@ test('T43 Preview feedback consent=true keeps permitted synthetic open text', as
   assert.equal(body.openFeedback, 'synthetic feedback');
 });
 
-test('T44 opaque feedback success UI does not claim the response was saved', async () => {
+test('T44 verified feedback success UI does not claim the response was merely saved', async () => {
   assert.equal(FEEDBACK_SENT_MESSAGE, 'Обратная связь отправлена.');
   assert.equal(/сохранена/iu.test(FEEDBACK_SENT_MESSAGE), false);
   const [html, script] = await Promise.all([
@@ -241,6 +245,84 @@ test('T44 opaque feedback success UI does not claim the response was saved', asy
   ]);
   assert.equal(html.includes('Обратная связь сохранена'), false);
   assert.equal(script.includes('Обратная связь сохранена'), false);
+});
+
+function memoryStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+  };
+}
+
+test('T45 navigator, catalog, profile and Browser Back reuse one journey sessionId', () => {
+  const storage = memoryStorage();
+  const options = { storage, createId: () => 'journey-one', now: () => '2026-08-27T00:00:00.000Z' };
+  const navigator = getJourneyContext(options);
+  const catalog = getJourneyContext({ ...options, createId: () => 'must-not-change' });
+  const profile = getJourneyContext({ ...options, createId: () => 'must-not-change' });
+  const browserBack = getJourneyContext({ ...options, createId: () => 'must-not-change' });
+  assert.equal(new Set([navigator.sessionId, catalog.sessionId, profile.sessionId, browserBack.sessionId]).size, 1);
+  assert.equal(browserBack.startedAt, navigator.startedAt);
+  clearJourneyContext(storage);
+  assert.equal(getJourneyContext({ ...options, createId: () => 'journey-two' }).sessionId, 'journey-two');
+});
+
+test('T46 meaningful Preview journey events bypass telemetry buffer exactly once per send', async () => {
+  const sink = [];
+  const calls = [];
+  const send = createPreviewAwareSender({
+    runtime: ordinaryVercelPreview(), sink,
+    fetchImpl: async (_url, options) => {
+      calls.push(JSON.parse(options.body));
+      return { ok: true, async json() { return { ok: true }; } };
+    },
+  });
+  await send({ event: 'profile_opened', sessionId: 'journey-one' });
+  await send({ event: 'whatsapp_clicked', sessionId: 'journey-one' });
+  assert.equal(calls.length, 2);
+  assert.equal(sink.length, 0);
+  assert.ok(calls.every((item) => item.testEvent === true));
+});
+
+test('T47 feedback UI sender rejects unverified upstream success', async () => {
+  const send = createPreviewAwareSender({
+    runtime: ordinaryVercelPreview(),
+    fetchImpl: async () => ({ ok: true, async json() { return { ok: false }; } }),
+  });
+  await assert.rejects(() => send({ event: 'feedback_submitted', sessionId: 'unverified' }), /FEEDBACK_NOT_CONFIRMED/);
+});
+
+test('T48 feedback proxy strips open text without consent and confirms stored JSON', async () => {
+  let upstream;
+  const processFeedback = createFeedbackProcessor({
+    fetchImpl: async (_url, options) => {
+      upstream = JSON.parse(options.body);
+      return { ok: true, async json() { return { success: true }; } };
+    },
+  });
+  assert.deepEqual(await processFeedback({
+    event: 'feedback_submitted', sessionId: 'proxy-private', openTextConsent: false,
+    openConcern: 'private', openFeedback: 'private', mainConcern: 'private',
+  }), { ok: true });
+  for (const field of ['openConcern', 'openFeedback', 'mainConcern']) assert.equal(field in upstream, false);
+});
+
+test('T54 feedback proxy drops unknown free-text fields even when consent is false', async () => {
+  let upstream;
+  const processFeedback = createFeedbackProcessor({
+    fetchImpl: async (_url, options) => {
+      upstream = JSON.parse(options.body);
+      return { ok: true, async json() { return { success: true }; } };
+    },
+  });
+  await processFeedback({
+    event: 'feedback_submitted', sessionId: 'proxy-unknown', openTextConsent: false,
+    arbitraryFreeText: 'must not leave backend', comment: 'must not leave backend',
+  });
+  assert.equal('arbitraryFreeText' in upstream, false);
+  assert.equal('comment' in upstream, false);
 });
 
 test('mock client validates structured output', async () => {

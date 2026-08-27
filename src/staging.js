@@ -25,32 +25,36 @@ export function markAnalyticsTestPayload(payload = {}, enabled = false, fallback
 export const FEEDBACK_SENT_MESSAGE = 'Обратная связь отправлена.';
 
 export function createPreviewAwareSender({
-  endpoint,
+  endpoint = '/api/feedback',
   runtime = {},
   sink = [],
   fetchImpl = globalThis.fetch,
 }) {
   return async function send(payload = {}) {
-    const isPreviewFeedback = Boolean(
-      runtime.vercelPreview && payload.event === 'feedback_submitted',
+    const isMeaningfulJourneyEvent = ['feedback_submitted', 'profile_opened', 'whatsapp_clicked']
+      .includes(payload.event);
+    const isPreviewJourneyEvent = Boolean(
+      runtime.vercelPreview && isMeaningfulJourneyEvent,
     );
     const outgoing = markAnalyticsTestPayload(
       payload,
-      Boolean(runtime.analyticsTest || isPreviewFeedback),
+      Boolean(runtime.analyticsTest || isPreviewJourneyEvent),
     );
 
-    if (runtime.bufferAnalytics && !isPreviewFeedback) {
+    if (runtime.bufferAnalytics && !isPreviewJourneyEvent) {
       sink.push(outgoing);
       return { preview: true, payload: outgoing };
     }
 
     const response = await fetchImpl(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(outgoing),
-      mode: 'no-cors',
       keepalive: true,
     });
-    return { preview: false, payload: outgoing, response };
+    if (!response?.ok) throw new Error('FEEDBACK_REQUEST_FAILED');
+    const confirmation = await response.json();
+    if (confirmation?.ok !== true) throw new Error('FEEDBACK_NOT_CONFIRMED');
+    return { preview: false, payload: outgoing, response, confirmation };
   };
 }

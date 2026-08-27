@@ -76,20 +76,13 @@
     <p class="note">Специалист не ставит медицинских или психиатрических диагнозов. При угрозе жизни, насилии или остром кризисном состоянии нужна экстренная помощь — 112 или ближайшая служба неотложной помощи.</p>
   </main>
   <footer class="wrap footer"><span>© Платформа · профиль специалиста</span><span>Первый профиль будущего каталога</span></footer>
-  <script>
-    const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
-    function createSessionId(){return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `profile_${Date.now()}_${Math.random().toString(36).slice(2)}`}
-    function getProfileSessionId(){
-      const key='platformaSessionId';
-      try{
-        const existing=sessionStorage.getItem(key)||localStorage.getItem(key);
-        const value=existing||createSessionId();
-        sessionStorage.setItem(key,value);
-        return value;
-      } catch(e){return createSessionId()}
-    }
-    const sessionId=getProfileSessionId();
+  <script type="module">
+    import { getJourneyContext } from './src/journey.js';
+    const ENDPOINT='/api/feedback';
+    const journey=getJourneyContext();
+    const sessionId=journey.sessionId;
     const IS_LOCAL_PREVIEW=['localhost','127.0.0.1'].includes(location.hostname);
+    const IS_VERCEL_PREVIEW=location.hostname.endsWith('.vercel.app');
     const previewEvents=[];
     globalThis.__platformaProfilePreviewEvents=previewEvents;
     function send(payload){
@@ -97,10 +90,15 @@
         previewEvents.push(payload);
         return Promise.resolve({preview:true});
       }
-      return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true});
+      return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true})
+        .then(async response=>{
+          const result=await response.json().catch(()=>null);
+          if(!response.ok||result?.ok!==true) throw new Error('JOURNEY_EVENT_NOT_CONFIRMED');
+          return result;
+        });
     }
     function trackProfileWhatsApp(source){
-      const payload={sessionId,status:'переход к записи',bookingClicked:true,event:'whatsapp_clicked',specialistId:'diana_kim',source,page:'specialist_profile',timestamp:new Date().toISOString()};
+      const payload={sessionId,schemaVersion:'v3',startedAt:journey.startedAt,status:'переход к записи',bookingClicked:true,event:'whatsapp_clicked',specialistId:'diana_kim',source,page:'specialist_profile',timestamp:new Date().toISOString(),testEvent:IS_VERCEL_PREVIEW};
       if(new URLSearchParams(location.search).get('analytics_test')==='1'){
         payload.testEvent=true;
         payload.comment=`TEST_EVENT: whatsapp_clicked · ${source}`;

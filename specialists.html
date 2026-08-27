@@ -133,28 +133,26 @@
     <footer><span>© Платформа · каталог специалистов</span><span>Выбор всегда остаётся за пользователем</span></footer>
   </div>
 
-  <script>
-    const ENDPOINT='https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
-    const SESSION_KEY='platformaSessionId';
-    function createSessionId(){return globalThis.crypto?.randomUUID?globalThis.crypto.randomUUID():`catalog_${Date.now()}_${Math.random().toString(36).slice(2)}`}
-    function getSessionId(){
-      try{
-        const existing=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY);
-        const value=existing||createSessionId();
-        sessionStorage.setItem(SESSION_KEY,value);
-        return value;
-      }catch(error){return createSessionId()}
-    }
-    const sessionId=getSessionId();
+  <script type="module">
+    import { getJourneyContext } from './src/journey.js';
+    const ENDPOINT='/api/feedback';
+    const journey=getJourneyContext();
+    const sessionId=journey.sessionId;
     const IS_LOCAL_PREVIEW=['localhost','127.0.0.1'].includes(location.hostname);
+    const IS_VERCEL_PREVIEW=location.hostname.endsWith('.vercel.app');
     const previewEvents=[];
     globalThis.__platformaCatalogPreviewEvents=previewEvents;
     function send(payload){
       if(IS_LOCAL_PREVIEW){previewEvents.push(payload);return Promise.resolve({preview:true})}
-      return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),mode:'no-cors',keepalive:true});
+      return fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true})
+        .then(async response=>{
+          const result=await response.json().catch(()=>null);
+          if(!response.ok||result?.ok!==true) throw new Error('JOURNEY_EVENT_NOT_CONFIRMED');
+          return result;
+        });
     }
     function track(event,source){
-      send({sessionId,status:event,event,specialistId:'diana_kim',source,page:'specialists_catalog',timestamp:new Date().toISOString()}).catch(()=>{});
+      send({sessionId,schemaVersion:'v3',startedAt:journey.startedAt,status:event,event,specialistId:'diana_kim',source,page:'specialists_catalog',timestamp:new Date().toISOString(),testEvent:IS_VERCEL_PREVIEW}).catch(()=>{});
     }
     document.querySelector('[data-profile-link]').addEventListener('click',()=>track('profile_opened','specialists_catalog'));
     document.querySelector('[data-whatsapp-link]').addEventListener('click',()=>track('whatsapp_clicked','specialists_catalog'));
