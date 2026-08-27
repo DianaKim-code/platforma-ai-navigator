@@ -6,7 +6,12 @@ import { loadPracticeMap, validatePracticeId } from './src/practiceMap.js';
 import { createPersistedNavigatorState } from './src/persistence.js';
 import { renderAiResult } from './src/resultRenderer.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from './src/safety.js';
-import { markAnalyticsTestPayload, stagingRuntime } from './src/staging.js';
+import {
+  createPreviewAwareSender,
+  FEEDBACK_SENT_MESSAGE,
+  markAnalyticsTestPayload,
+  stagingRuntime,
+} from './src/staging.js';
 
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxWlWcNAVqCeSRBZYefApC-p2H9JP6CFFzdaAMcaXUSFA9zFebGWSkTAmaDzKkEmSY0/exec';
 const SESSION_KEY = 'platformaSessionId';
@@ -171,20 +176,11 @@ const analytics = createAnalytics({
   sink: previewEvents,
 });
 
-function send(payload) {
-  const outgoing = markAnalyticsTestPayload(payload, runtime.analyticsTest);
-  if (runtime.bufferAnalytics) {
-    previewEvents.push(outgoing);
-    return Promise.resolve({ preview: true });
-  }
-  return fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(outgoing),
-    mode: 'no-cors',
-    keepalive: true,
-  });
-}
+const send = createPreviewAwareSender({
+  endpoint: ENDPOINT,
+  runtime,
+  sink: previewEvents,
+});
 
 function sendEvent(event, meta = {}) {
   return analytics.send(
@@ -1017,7 +1013,7 @@ async function submitFeedback() {
   document.getElementById('sendStatus').textContent = 'Сохраняю обратную связь…';
   try {
     await send(structuredPayload());
-    document.getElementById('finishText').textContent = 'Обратная связь сохранена. Результат остаётся доступен выше.';
+    document.getElementById('finishText').textContent = `${FEEDBACK_SENT_MESSAGE} Результат остаётся доступен выше.`;
     document.getElementById('feedback').classList.add('hidden');
     document.getElementById('finish').classList.remove('hidden');
     document.getElementById('finish').scrollIntoView({ behavior: 'smooth', block: 'center' });

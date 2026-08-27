@@ -7,6 +7,7 @@ import { hasSufficientData } from '../src/dataSufficiency.js';
 import { selectPractice, validatePracticeId } from '../src/practiceMap.js';
 import { fallbackResult, validateAnalysisResponse } from '../src/schema.js';
 import { evaluateSafety, SAFETY_STOP_ANSWER } from '../src/safety.js';
+import { createPreviewAwareSender, FEEDBACK_SENT_MESSAGE, stagingRuntime } from '../src/staging.js';
 import { analyzeWithProvider } from '../server/src/analyze.js';
 
 const practices = JSON.parse(await readFile(new URL('../data/practices.json', import.meta.url), 'utf8'));
@@ -134,6 +135,112 @@ test('T38 consent=true keeps allowed v3 open text', () => {
   assert.equal(payload.openTextConsent, true);
   assert.equal(payload.openConcern, 'synthetic concern');
   assert.equal(payload.openFeedback, 'synthetic feedback');
+});
+
+function ordinaryVercelPreview() {
+  return stagingRuntime({ hostname: 'mvp-v3-preview.vercel.app', search: '' });
+}
+
+test('T39 ordinary Vercel Preview analytics remains buffered', async () => {
+  const sink = [];
+  let fetchCalls = 0;
+  const send = createPreviewAwareSender({
+    endpoint: 'https://script.google.com/macros/s/test/exec',
+    runtime: ordinaryVercelPreview(),
+    sink,
+    fetchImpl: async () => { fetchCalls += 1; },
+  });
+  const result = await send({ event: 'question_answered', questionId: 'duration' });
+  assert.equal(result.preview, true);
+  assert.equal(fetchCalls, 0);
+  assert.equal(sink.length, 1);
+});
+
+test('T40 Vercel Preview feedback performs a real POST', async () => {
+  const calls = [];
+  const send = createPreviewAwareSender({
+    endpoint: 'https://script.google.com/macros/s/test/exec',
+    runtime: ordinaryVercelPreview(),
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return { type: 'opaque' };
+    },
+  });
+  const result = await send({ event: 'feedback_submitted', sessionId: 'preview-feedback' });
+  assert.equal(result.preview, false);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.method, 'POST');
+  assert.equal(calls[0].options.mode, 'no-cors');
+});
+
+test('T41 Preview feedback is automatically marked as a test event', async () => {
+  let body;
+  const send = createPreviewAwareSender({
+    endpoint: 'https://script.google.com/macros/s/test/exec',
+    runtime: ordinaryVercelPreview(),
+    fetchImpl: async (_url, options) => {
+      body = JSON.parse(options.body);
+      return { type: 'opaque' };
+    },
+  });
+  await send({ event: 'feedback_submitted', sessionId: 'preview-marked' });
+  assert.equal(body.testEvent, true);
+});
+
+test('T42 Preview feedback consent=false sends no open text', async () => {
+  let body;
+  const send = createPreviewAwareSender({
+    endpoint: 'https://script.google.com/macros/s/test/exec',
+    runtime: ordinaryVercelPreview(),
+    fetchImpl: async (_url, options) => {
+      body = JSON.parse(options.body);
+      return { type: 'opaque' };
+    },
+  });
+  await send(createV3FeedbackPayload({
+    event: 'feedback_submitted',
+    openTextConsent: false,
+    openConcern: 'private concern',
+    openFeedback: 'private feedback',
+    mainConcern: 'private raw answer',
+    desiredAction: 'private action',
+    stopFeeling: 'private feeling',
+    ownAction: 'private own action',
+  }));
+  for (const field of ['openConcern', 'openFeedback', 'mainConcern', 'desiredAction', 'stopFeeling', 'ownAction']) {
+    assert.equal(field in body, false, field);
+  }
+});
+
+test('T43 Preview feedback consent=true keeps permitted synthetic open text', async () => {
+  let body;
+  const send = createPreviewAwareSender({
+    endpoint: 'https://script.google.com/macros/s/test/exec',
+    runtime: ordinaryVercelPreview(),
+    fetchImpl: async (_url, options) => {
+      body = JSON.parse(options.body);
+      return { type: 'opaque' };
+    },
+  });
+  await send(createV3FeedbackPayload({
+    event: 'feedback_submitted',
+    openTextConsent: true,
+    openConcern: 'synthetic concern',
+    openFeedback: 'synthetic feedback',
+  }));
+  assert.equal(body.openConcern, 'synthetic concern');
+  assert.equal(body.openFeedback, 'synthetic feedback');
+});
+
+test('T44 opaque feedback success UI does not claim the response was saved', async () => {
+  assert.equal(FEEDBACK_SENT_MESSAGE, 'Обратная связь отправлена.');
+  assert.equal(/сохранена/iu.test(FEEDBACK_SENT_MESSAGE), false);
+  const [html, script] = await Promise.all([
+    readFile(new URL('../index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../navigator.js', import.meta.url), 'utf8'),
+  ]);
+  assert.equal(html.includes('Обратная связь сохранена'), false);
+  assert.equal(script.includes('Обратная связь сохранена'), false);
 });
 
 test('mock client validates structured output', async () => {

@@ -21,3 +21,36 @@ export function markAnalyticsTestPayload(payload = {}, enabled = false, fallback
     comment: payload.comment ? `TEST_EVENT: ${payload.comment}` : `TEST_EVENT: ${label}`,
   };
 }
+
+export const FEEDBACK_SENT_MESSAGE = 'Обратная связь отправлена.';
+
+export function createPreviewAwareSender({
+  endpoint,
+  runtime = {},
+  sink = [],
+  fetchImpl = globalThis.fetch,
+}) {
+  return async function send(payload = {}) {
+    const isPreviewFeedback = Boolean(
+      runtime.vercelPreview && payload.event === 'feedback_submitted',
+    );
+    const outgoing = markAnalyticsTestPayload(
+      payload,
+      Boolean(runtime.analyticsTest || isPreviewFeedback),
+    );
+
+    if (runtime.bufferAnalytics && !isPreviewFeedback) {
+      sink.push(outgoing);
+      return { preview: true, payload: outgoing };
+    }
+
+    const response = await fetchImpl(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(outgoing),
+      mode: 'no-cors',
+      keepalive: true,
+    });
+    return { preview: false, payload: outgoing, response };
+  };
+}
